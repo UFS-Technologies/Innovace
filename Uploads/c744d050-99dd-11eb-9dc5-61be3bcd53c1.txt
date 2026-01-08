@@ -1,0 +1,1093 @@
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_Course`(In Course_Name_ varchar(100),Intake_Id_ int,Level_Id_ int,Country_Id_ int,Internship_Id_ int,
+Duration_Id_ int,University_Id_ int,Subject_Id_ int)
+Begin 
+
+
+declare SearchbyName_Value varchar(2000);
+set SearchbyName_Value='';
+if Intake_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and Intake.Intake_Id =",Intake_Id_);
+end if;
+if Level_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and Level.Level_Id =",Level_Id_);
+end if;
+if Country_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and Course.Country_Id =",Country_Id_);
+end if;
+if Internship_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and Internship.Internship_Id =",Internship_Id_);
+end if;
+if Duration_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and Course.Duration_Id =",Duration_Id_);
+end if;
+if University_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and Course.University_Id =",University_Id_);
+end if;
+if Subject_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and Course.Subject_Id =",Subject_Id_);
+end if;
+
+SET @query = Concat("SELECT Course_Id,Course_Name,Course_Code,Country_Name,University_Name,Duration_Name,Level_Detail_Name,Subject_Name,Internship_Name,course.Internship_Id
+ 
+ From Course inner join country on course.Country_Id = country.Country_Id 
+ inner join duration on  course.Duration_Id= duration.Duration_Id
+ inner join  level_detail on course.Level_Id=level_detail.Level_Detail_Id
+ inner join subject on course.Subject_Id=subject.Subject_Id
+ inner join  internship on course.Internship_Id=internship.Internship_Id
+inner join university  on course.University_Id = university.University_Id 
+where Course.DeleteStatus = false  " ,SearchbyName_Value," order by Course.Course_Name desc ");
+PREPARE QUERY FROM @query;
+EXECUTE QUERY;
+#delete from db_logs;
+#insert into db_logs values(1,@query,1,1);
+#select @query;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_site_Pageload`()
+BEGIN
+SELECT Country_Id,Country_Name From Country where  DeleteStatus=false  order by Country_Name asc ;
+SELECT Ielts_Id,Ielts_Name From ielts  where  DeleteStatus=false order by  Ielts_Name asc ;
+SELECT Subject_Id,Subject_Name,Selection From subject where  DeleteStatus=false  order by Subject_Name asc ;
+SELECT Duration_Id,Duration_Name From duration where  DeleteStatus=false  order by Duration_Name asc ;
+
+SELECT Level_Detail_Id,Level_Detail_Name From level_detail where  DeleteStatus=false  order by Level_Detail_Name asc ;
+SELECT Intake_Id,Intake_Name From intake where  DeleteStatus=false  order by Intake_Name asc ;
+SELECT Internship_Id,Internship_Name From internship where  DeleteStatus=false  order by Internship_Name asc ;
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Save_Student`( In Student_Id_ int,
+Student_Name_ varchar(50),
+Last_Name_ varchar(50),
+Gender_ varchar(50),
+Address1_ varchar(50),
+Address2_ varchar(50),
+Pincode_ varchar(7),
+Email_ varchar(25),
+Phone_Number_ varchar(25),
+Dob_ date,
+Country_ int,
+Promotional_Code_ varchar(50),
+Student_Status_Id_ int,
+Password_ varchar(20))
+Begin 
+ if  Student_Id_>0
+ THEN 
+ UPDATE Student set Student_Id = Student_Id_ ,
+
+Student_Name = Student_Name_ ,
+Last_Name = Last_Name_ ,
+Gender = Gender_ ,
+Address1 = Address1_ ,
+Address2 = Address2_ ,
+Pincode = Pincode_ ,
+Email = Email_ ,
+Phone_Number = Phone_Number_ ,
+Dob = Dob_ ,
+Country = Country_ ,
+Promotional_Code = Promotional_Code_ ,
+Student_Status_Id = Student_Status_Id_ ,
+Password = Password_  Where Student_Id=Student_Id_ ;
+ ELSE 
+ SET Student_Id_ = (SELECT  COALESCE( MAX(Student_Id ),0)+1 FROM Student); 
+ INSERT INTO Student(Student_Id ,
+ Entry_Date,
+Student_Name ,
+Last_Name ,
+Gender ,
+Address1 ,
+Address2 ,
+Pincode ,
+Email ,
+Phone_Number ,
+Dob ,
+Country ,
+Promotional_Code ,
+Student_Status_Id ,
+Password,DeleteStatus ) values (Student_Id_ ,
+now(),
+Student_Name_ ,
+Last_Name_ ,
+Gender_ ,
+Address1_ ,
+Address2_ ,
+Pincode_ ,
+Email_ ,
+Phone_Number_ ,
+Dob_ ,
+Country_ ,
+Promotional_Code_ ,
+Student_Status_Id_ ,
+Password_,false );
+ End If ;
+ select Student_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_Student`(In From_Date_ datetime,To_Date_ datetime,Is_Date_Check_ Tinyint,Student_Name_ varchar(100),
+Subject_Id_ int,University_Id_ int,Internship_Id_ int,Country_Id_ int,Duration_Id_ int,Level_Detail_Id_ int)
+Begin 
+declare Search_Date_ varchar(500);declare SearchbyName_Value varchar(2000);
+set Search_Date_="";set SearchbyName_Value=""; 
+
+if Is_Date_Check_=true then
+	set Search_Date_=concat(" and date(Student.Entry_Date) >= '", From_Date_ ,"' and  date(Student.Entry_Date) <= '", To_Date_,"'");
+end if;
+
+if Student_Name_!='' then
+SET SearchbyName_Value =   Concat( SearchbyName_Value ," and Student.Student_Name like '%",Student_Name_ ,"%'") ;
+end if;
+
+if Country_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and Course.Country_Id =",Country_Id_);
+end if;
+if Subject_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and Subject.Subject_Id =",Subject_Id_);
+end if;
+if University_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and University.University_Id =",University_Id_);
+end if;
+
+if Internship_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and Internship.Internship_Id =",Internship_Id_);
+end if;
+
+if Duration_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and Duration.Duration_Id =",Duration_Id_);
+end if;
+if Level_Detail_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and Level_Detail.Level_Detail_Id =",Level_Detail_Id_);
+end if;
+
+SET @query = Concat("SELECT student.Student_Id,(Date_Format(student.Entry_Date,'%Y-%m-%d')) Entry_Date,student.Student_Name,student.Address1,student.Email,student.Phone_Number
+ From Student inner join student_course_apply on Student.Student_Id = student_course_apply.Student_Id 
+ inner join student_course_selection  on student_course_apply.Student_Course_Apply_Id = student_course_selection.Student_Course_Apply_Id 
+ inner join course on student_course_selection.Course_Id = course.Course_Id 
+  where Student.DeleteStatus = false  ", Search_Date_ ,SearchbyName_Value," order by Student.Entry_Date desc ");
+PREPARE QUERY FROM @query;
+EXECUTE QUERY;
+#delete from db_logs;
+#insert into db_logs values(1,@query,1,1);
+#select @query;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Save_Student_Status`( In Student_Status_Id_ int,
+Student_Status_Name_ varchar(50))
+Begin 
+ if  Student_Status_Id_>0
+ THEN 
+ UPDATE Student_Status set Student_Status_Id = Student_Status_Id_ ,
+Student_Status_Name = Student_Status_Name_  Where Student_Status_Id=Student_Status_Id_ ;
+ ELSE 
+ SET Student_Status_Id_ = (SELECT  COALESCE( MAX(Student_Status_Id ),0)+1 FROM Student_Status); 
+ INSERT INTO Student_Status(Student_Status_Id ,
+Student_Status_Name,DeleteStatus ) values (Student_Status_Id_ ,
+Student_Status_Name_,false );
+ End If ;
+ select Student_Status_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Save_Student_Message`( In Student_Message_Id_ int,
+Student_Id_ int,
+Message_Detail_ varchar(2000))
+Begin 
+ if  Student_Message_Id_>0
+ THEN 
+ UPDATE Student_Message set Student_Message_Id = Student_Message_Id_ ,
+Student_Id = Student_Id_ ,
+Message_Detail = Message_Detail_  Where Student_Message_Id=Student_Message_Id_ ;
+ ELSE 
+ SET Student_Message_Id_ = (SELECT  COALESCE( MAX(Student_Message_Id ),0)+1 FROM Student_Message); 
+ INSERT INTO Student_Message(Student_Message_Id ,
+Student_Id ,
+Message_Detail,DeleteStatus ) values (Student_Message_Id_ ,
+Student_Id_ ,
+Message_Detail_,false );
+ End If ;
+ select Student_Message_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Save_Student_Document`( In Student_Document_Id_ int,
+Student_Id_ int,
+Document_Id_ int)
+Begin 
+ if  Student_Document_Id_>0
+ THEN 
+ UPDATE Student_Document set Student_Document_Id = Student_Document_Id_ ,
+Student_Id = Student_Id_ ,
+Document_Id = Document_Id_  Where Student_Document_Id=Student_Document_Id_ ;
+ ELSE 
+ SET Student_Document_Id_ = (SELECT  COALESCE( MAX(Student_Document_Id ),0)+1 FROM Student_Document); 
+ INSERT INTO Student_Document(Student_Document_Id ,
+Student_Id ,
+Document_Id,DeleteStatus ) values (Student_Document_Id_ ,
+Student_Id_ ,
+Document_Id_,false );
+ End If ;
+ select Student_Document_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Save_Document`( In Document_Id_ int,
+Document_Name_ varchar(50))
+Begin 
+ if  Document_Id_>0
+ THEN 
+ UPDATE Document set Document_Id = Document_Id_ ,
+Document_Name = Document_Name_  Where Document_Id=Document_Id_ ;
+ ELSE 
+ SET Document_Id_ = (SELECT  COALESCE( MAX(Document_Id ),0)+1 FROM Document); 
+ INSERT INTO Document(Document_Id ,
+Document_Name,DeleteStatus ) values (Document_Id_ ,
+Document_Name_,false );
+ End If ;
+ select Document_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Save_University`( In University_Id_ int,
+University_Name_ varchar(50))
+Begin 
+ if  University_Id_>0
+ THEN 
+ UPDATE University set University_Id = University_Id_ ,
+University_Name = University_Name_  Where University_Id=University_Id_ ;
+ ELSE 
+ SET University_Id_ = (SELECT  COALESCE( MAX(University_Id ),0)+1 FROM University); 
+ INSERT INTO University(University_Id ,
+University_Name,DeleteStatus ) values (University_Id_ ,
+University_Name_,false );
+ End If ;
+ select University_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Save_Subject`( In Subject_Id_ int,
+Subject_Name_ varchar(50))
+Begin 
+ if  Subject_Id_>0
+ THEN 
+ UPDATE Subject set Subject_Id = Subject_Id_ ,
+Subject_Name = Subject_Name_  Where Subject_Id=Subject_Id_ ;
+ ELSE 
+ SET Subject_Id_ = (SELECT  COALESCE( MAX(Subject_Id ),0)+1 FROM Subject); 
+ INSERT INTO Subject(Subject_Id ,
+Subject_Name,DeleteStatus ) values (Subject_Id_ ,
+Subject_Name_,false );
+ End If ;
+ select Subject_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Save_Level_Detail`( In Level_Detail_Id_ int,
+Level_Detail_Name_ varchar(50))
+Begin 
+ if  Level_Detail_Id_>0
+ THEN 
+ UPDATE Level_Detail set Level_Detail_Id = Level_Detail_Id_ ,
+Level_Detail_Name = Level_Detail_Name_  Where Level_Detail_Id=Level_Detail_Id_ ;
+ ELSE 
+ SET Level_Detail_Id_ = (SELECT  COALESCE( MAX(Level_Detail_Id ),0)+1 FROM Level_Detail); 
+ INSERT INTO Level_Detail(Level_Detail_Id ,
+Level_Detail_Name,DeleteStatus ) values (Level_Detail_Id_ ,
+Level_Detail_Name_,false );
+ End If ;
+ select Level_Detail_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Save_Internship`( In Internship_Id_ int,
+Internship_Name_ varchar(50))
+Begin 
+ if  Internship_Id_>0
+ THEN 
+ UPDATE Internship set Internship_Id = Internship_Id_ ,
+Internship_Name = Internship_Name_  Where Internship_Id=Internship_Id_ ;
+ ELSE 
+ SET Internship_Id_ = (SELECT  COALESCE( MAX(Internship_Id ),0)+1 FROM Internship); 
+ INSERT INTO Internship(Internship_Id ,
+Internship_Name,DeleteStatus ) values (Internship_Id_ ,
+Internship_Name_,false );
+ End If ;
+ select Internship_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Save_Intake`( In Intake_Id_ int,
+Intake_Name_ varchar(50))
+Begin 
+ if  Intake_Id_>0
+ THEN 
+ UPDATE Intake set Intake_Id = Intake_Id_ ,
+Intake_Name = Intake_Name_  Where Intake_Id=Intake_Id_ ;
+ ELSE 
+ SET Intake_Id_ = (SELECT  COALESCE( MAX(Intake_Id ),0)+1 FROM Intake); 
+ INSERT INTO Intake(Intake_Id ,
+Intake_Name,DeleteStatus ) values (Intake_Id_ ,
+Intake_Name_,false );
+ End If ;
+ select Intake_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Save_Country`( In Country_Id_ int,
+Country_Name_ varchar(50))
+Begin 
+ if  Country_Id_>0
+ THEN 
+ UPDATE Country set Country_Id = Country_Id_ ,
+Country_Name = Country_Name_  Where Country_Id=Country_Id_ ;
+ ELSE 
+ SET Country_Id_ = (SELECT  COALESCE( MAX(Country_Id ),0)+1 FROM Country); 
+ INSERT INTO Country(Country_Id ,
+Country_Name,DeleteStatus ) values (Country_Id_ ,
+Country_Name_,false );
+ End If ;
+ select Country_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Save_Duration`( In Duration_Id_ int,
+Duration_Name_ varchar(50))
+Begin 
+ if  Duration_Id_>0
+ THEN 
+ UPDATE Duration set Duration_Id = Duration_Id_ ,
+Duration_Name = Duration_Name_  Where Duration_Id=Duration_Id_ ;
+ ELSE 
+ SET Duration_Id_ = (SELECT  COALESCE( MAX(Duration_Id ),0)+1 FROM Duration); 
+ INSERT INTO Duration(Duration_Id ,
+Duration_Name,DeleteStatus ) values (Duration_Id_ ,
+Duration_Name_,false );
+ End If ;
+ select Duration_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Save_Course`( In Course_Id_ int,
+Course_Name_ varchar(50),
+Course_Code_ varchar(10),
+Subject_Id_ int,
+Duration_Id_ int,
+Level_Id_ int,
+Ielts_Minimum_Score_ int,
+Internship_Id_ int,
+Notes_ varchar(500),
+Details_ varchar(500),
+Application_Fees_ int,
+University_Id_ int,
+Country_Id_ int)
+Begin 
+ if  Course_Id_>0
+ THEN 
+ UPDATE Course set Course_Id = Course_Id_ ,
+Course_Name = Course_Name_ ,
+Course_Code = Course_Code_ ,
+Subject_Id = Subject_Id_ ,
+Duration_Id = Duration_Id_ ,
+Level_Id = Level_Id_ ,
+Ielts_Minimum_Score = Ielts_Minimum_Score_ ,
+Internship_Id = Internship_Id_ ,
+Notes = Notes_ ,
+Details = Details_ ,
+Application_Fees = Application_Fees_ ,
+University_Id = University_Id_ ,
+Country_Id = Country_Id_  Where Course_Id=Course_Id_ ;
+ ELSE 
+ SET Course_Id_ = (SELECT  COALESCE( MAX(Course_Id ),0)+1 FROM Course); 
+ INSERT INTO Course(Course_Id ,
+Course_Name ,
+Course_Code ,
+Subject_Id ,
+Duration_Id ,
+Level_Id ,
+Ielts_Minimum_Score ,
+Internship_Id ,
+Notes ,
+Details ,
+Application_Fees ,
+University_Id ,
+Country_Id,DeleteStatus ) values (Course_Id_ ,
+Course_Name_ ,
+Course_Code_ ,
+Subject_Id_ ,
+Duration_Id_ ,
+Level_Id_ ,
+Ielts_Minimum_Score_ ,
+Internship_Id_ ,
+Notes_ ,
+Details_ ,
+Application_Fees_ ,
+University_Id_ ,
+Country_Id_,false );
+ End If ;
+ select Course_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_Course_Load_Data`()
+BEGIN
+
+SELECT Internship_Id,Internship_Name From internship where  DeleteStatus=false  order by Internship_Name asc ;
+SELECT Ielts_Id,Ielts_Name From ielts  where  DeleteStatus=false order by  Ielts_Name asc ;
+SELECT Duration_Id,Duration_Name From duration where  DeleteStatus=false  order by Duration_Name asc ;
+SELECT Level_Detail_Id,Level_Detail_Name From level_detail where  DeleteStatus=false  order by Level_Detail_Name asc ;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `University_Typeahead`( In University_Name_ varchar(100))
+Begin
+ set University_Name_ = Concat( '%',University_Name_ ,'%');
+select  University.University_Id,University_Name
+From University
+where University_Name like University_Name_  and University.DeleteStatus=false
+order by University_Name asc  limit 5  ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Subject_Typeahead`( In Subject_Name_ varchar(100))
+Begin
+ set Subject_Name_ = Concat( '%',Subject_Name_ ,'%');
+select  Subject.Subject_Id,Subject_Name
+From Subject
+where Subject_Name like Subject_Name_  and Subject.DeleteStatus=false
+order by Subject_Name asc  limit 5  ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_Country_Typeahead`( In Country_Name_ varchar(100))
+Begin
+ set Country_Name_ = Concat( '%',Country_Name_ ,'%');
+select  Country.Country_Id,Country_Name
+From Country
+where Country_Name like Country_Name_  and Country.DeleteStatus=false
+order by Country_Name asc  limit 5  ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_Course_Typeahead`(In Country_Id_ int,Subject_Id_ varchar(100),Level_Id_ int,
+Course_Name_ varchar(100),Duration_Id_ varchar(100),Ielts_Minimum_Score_ int,Intake_Id_ int,Internship_Id_ int)
+Begin 
+declare SearchbyName_Value varchar(2000);
+set SearchbyName_Value=""; 
+
+if Course_Name_!='' then
+SET SearchbyName_Value =   Concat( SearchbyName_Value ," and course.Course_Name like '%",Course_Name_ ,"%'") ;
+end if;
+if Duration_Id_!='' then
+SET SearchbyName_Value =   Concat( SearchbyName_Value ," and course.Duration_Id in (",Duration_Id_ ,")") ;
+end if;
+if Subject_Id_!='' then
+SET SearchbyName_Value =   Concat( SearchbyName_Value ," and course.Subject_Id in (",Subject_Id_ ,")") ;
+end if;
+if Country_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and course.Country_Id =",Country_Id_);
+end if;
+if Intake_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and course_intake.Intake_Id =",Intake_Id_);
+end if;
+
+if Level_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and course.Level_Id =",Level_Id_);
+end if;
+if Ielts_Minimum_Score_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and course.Ielts_Minimum_Score =",Ielts_Minimum_Score_);
+end if;
+if Internship_Id_>0 then
+	SET SearchbyName_Value =concat(SearchbyName_Value," and course.Internship_Id =",Internship_Id_);
+end if;
+
+
+SET @query = Concat("SELECT Course_Id,Course_Name,country.Country_Id,University_Name
+From course 
+ inner join country  on course.Country_Id = country.Country_Id
+ inner join university on course.University_Id = university.University_Id 
+ 
+ where course.DeleteStatus = false and country.DeleteStatus = false ",SearchbyName_Value," order by course.Course_Name asc ");
+PREPARE QUERY FROM @query;EXECUTE QUERY;
+#insert into db_logs values(1,@query,1,1);
+#select @query;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_Student_Message`( In Student_Message_Name_ varchar(100))
+Begin 
+ set Student_Message_Name_ = Concat( '%',Student_Message_Name_ ,'%');
+ SELECT Student_Message_Id,
+Student_Id,
+Message_Detail From Student_Message where Student_Message_Name like Student_Message_Name_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_User_Menu_Selection`( )
+Begin 
+SELECT 
+	Menu_Id,
+	Menu_Name,
+	Menu_Order,
+	IsEdit Edit_Check,
+	IsSave Save_Check,
+	IsDelete  Delete_Check,
+	IsView,
+	Menu_Status 
+From Menu 
+	where Menu_Status=1 and DeleteStatus=false 
+order by Menu.Menu_Id asc;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_User_Details`( In User_Details_Name_ varchar(100))
+Begin 
+ set User_Details_Name_ = Concat( '%',User_Details_Name_ ,'%');
+ SELECT User_Details_Id,User_Details_Name,Password,Working_Status,User_Type,Role_Id,User_Details.Address1,
+ User_Details.Address2,User_Details.Address3,User_Details.Address4,User_Details.Pincode,
+ User_Details.Mobile,User_Details.Email
+From User_Details
+where User_Details_Name like User_Details_Name_ and User_Details.DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_University`( In University_Name_ varchar(100))
+Begin 
+ set University_Name_ = Concat( '%',University_Name_ ,'%');
+ SELECT University_Id,
+University_Name From University where University_Name like University_Name_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_Student_Status`( In Student_Status_Name_ varchar(100))
+Begin 
+ set Student_Status_Name_ = Concat( '%',Student_Status_Name_ ,'%');
+ SELECT Student_Status_Id,
+Student_Status_Name From Student_Status where Student_Status_Name like Student_Status_Name_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_Subject`( In Subject_Name_ varchar(100))
+Begin 
+ set Subject_Name_ = Concat( '%',Subject_Name_ ,'%');
+ SELECT Subject_Id,
+Subject_Name From Subject where Subject_Name like Subject_Name_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Delete_Document`( In Document_Id_ Int)
+Begin 
+ update Document set DeleteStatus=true where Document_Id =Document_Id_ ;
+ select Document_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Delete_Course_Intake`( In Course_Intake_Id_ Int)
+Begin 
+ update Course_Intake set DeleteStatus=true where Course_Intake_Id =Course_Intake_Id_ ;
+ select Course_Intake_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_Document`( In Document_Id_ Int)
+Begin 
+ SELECT Document_Id,
+Document_Name From Document where Document_Id =Document_Id_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Delete_Student_Document`( In Student_Document_Id_ Int)
+Begin 
+ update Student_Document set DeleteStatus=true where Student_Document_Id =Student_Document_Id_ ;
+ select Student_Document_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Delete_Level_Detail`( In Level_Detail_Id_ Int)
+Begin 
+ update Level_Detail set DeleteStatus=true where Level_Detail_Id =Level_Detail_Id_ ;
+ select Level_Detail_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_Course_Intake`( In Course_Intake_Id_ Int)
+Begin 
+ SELECT Course_Id,
+Intake_Id From Course_Intake where Course_Intake_Id =Course_Intake_Id_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_Course`( In Course_Id_ Int)
+Begin 
+ SELECT Course_Id,
+Course_Name,
+Course_Code,
+Subject_Id,
+Duration_Id,
+Level_Id,
+Ielts_Minimum_Score,
+Internship_Id,
+Notes,
+Details,
+Application_Fees,
+University_Id,
+Country_Id From Course where Course_Id =Course_Id_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_Country`( In Country_Id_ Int)
+Begin 
+ SELECT Country_Id,
+Country_Name From Country where Country_Id =Country_Id_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Delete_User_Details`( In User_Details_Id_ Int)
+Begin 
+update User_Menu_Selection set DeleteStatus=true where User_Id =User_Details_Id_ ;
+ update User_Details set DeleteStatus=true where User_Details_Id =User_Details_Id_ ;
+ select User_Details_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Delete_Subject`( In Subject_Id_ Int)
+Begin 
+ update Subject set DeleteStatus=true where Subject_Id =Subject_Id_ ;
+ select Subject_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_Menu_Permission`(In User_Id_ int)
+BEGIN
+select
+User_Menu_Selection.Menu_Id,
+User_Menu_Selection.IsEdit Menu_Edit,
+User_Menu_Selection.IsDelete Menu_Delete ,
+User_Menu_Selection.IsSave Menu_Save,
+User_Menu_Selection.IsView VIew_All ,
+User_Menu_Selection.Menu_Status
+from User_Menu_Selection
+inner join Menu on User_Menu_Selection.Menu_Id=Menu.Menu_Id
+Where
+User_Id=User_Id_ 
+and User_Menu_Selection.IsView=1
+order by Menu_Order Asc;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_Student`( In Student_Id_ Int)
+Begin 
+ SELECT Student_Id,
+Student_Name,
+Last_Name,
+Gender,
+Address1,
+Address2,
+Pincode,
+Email,
+Phone_Number,
+Dob,
+Country,
+Promotional_Code,
+Student_Status_Id,
+Password From Student where Student_Id =Student_Id_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_Student_Document`( In Student_Document_Id_ Int)
+Begin 
+ SELECT Student_Document_Id,
+Student_Id,
+Document_Id From Student_Document where Student_Document_Id =Student_Document_Id_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_Student_Message`( In Student_Message_Id_ Int)
+Begin 
+ SELECT Student_Message_Id,
+Student_Id,
+Message_Detail From Student_Message where Student_Message_Id =Student_Message_Id_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_Student_Status`( In Student_Status_Id_ Int)
+Begin 
+ SELECT Student_Status_Id,
+Student_Status_Name From Student_Status where Student_Status_Id =Student_Status_Id_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_Subject`( In Subject_Id_ Int)
+Begin 
+ SELECT Subject_Id,
+Subject_Name From Subject where Subject_Id =Subject_Id_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_University`( In University_Id_ Int)
+Begin 
+ SELECT University_Id,
+University_Name From University where University_Id =University_Id_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_User_Details`( In User_Details_Id_ Int)
+Begin 
+ SELECT User_Details_Id,
+User_Details_Name,
+Password,
+Working_Status,
+User_Type,
+Role_Id,
+Address1,
+Address2,
+Address3,
+Address4,
+Pincode,
+Mobile,
+Email,Employee_Id From User_Details where User_Details_Id =User_Details_Id_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_User_Details_Edit`( In User_Details_Id_ Int)
+Begin 
+ SELECT Menu.Menu_Id ,Menu_Name,
+ case when User_Menu_Selection.IsView>0 then 1 else 0 end as IsView,
+ case when User_Menu_Selection.IsSave>0 then 1 else 0 end as IsSave,
+ case when User_Menu_Selection.IsEdit>0 then 1 else 0 end as IsEdit,
+ case when User_Menu_Selection.IsDelete>0 then 1 else 0 end as IsDelete,
+ Menu.IsEdit Edit_Check,
+	Menu.IsSave Save_Check,
+	Menu.IsDelete  Delete_Check
+  From Menu 
+  left join User_Menu_Selection on  Menu.Menu_Id=User_Menu_Selection.Menu_Id
+  and User_Id =User_Details_Id_ where Menu.Menu_Status=1 and
+  Menu.DeleteStatus=false order by Menu_Id ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Login_Check`( In User_Details_Name_ VARCHAR(50),
+in Password_ VARCHAR(50))
+BEGIN
+SELECT 
+User_Details_Id,User_Details_Name,User_Type
+From User_Details 
+ where 
+ User_Details_Name =User_Details_Name_ and Password=Password_;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Save_User_Details`( In User_Details_Id_ decimal,
+User_Details_Name_ varchar(250),Password_ varchar(250),Working_Status_ varchar(250),
+User_Type_ int,Role_Id_ decimal,Address1_ varchar(250),Address2_ varchar(250),Address3_ varchar(250),
+Address4_ varchar(250),Pincode_ varchar(250),Mobile_ varchar(250),Email_ varchar(250),
+Employee_Id_ int,Store_Id_ int,User_Menu_Selection JSON)
+BEGIN
+
+	DECLARE Menu_Id_ int;DECLARE IsEdit_ varchar(25);DECLARE IsSave_ varchar(25);
+	DECLARE IsDelete_ varchar(25);DECLARE IsView_ varchar(25);	DECLARE Menu_Status_ varchar(25);
+	DECLARE i int  DEFAULT 0;
+	DECLARE exit handler for sqlexception
+	BEGIN
+		GET DIAGNOSTICS CONDITION 1
+		@p1 = RETURNED_SQLSTATE, @p2 = MESSAGE_TEXT;
+		SELECT @p2 as MESSAGE_TEXT,@p1 as RETURNED_SQLSTATE  ;
+		ROLLBACK;
+	END;
+    
+    DECLARE exit handler for sqlwarning
+	BEGIN
+		GET DIAGNOSTICS CONDITION 1
+		@p1 = RETURNED_SQLSTATE, @p2 = MESSAGE_TEXT;
+		SELECT @p2 as MESSAGE_TEXT,@p1 as RETURNED_SQLSTATE  ;
+		ROLLBACK;
+	END;
+    
+    START TRANSACTION;
+    
+	if  User_Details_Id_>0
+		THEN 
+		delete from User_Menu_Selection where User_Id=User_Details_Id_;
+		UPDATE User_Details set User_Details_Name = User_Details_Name_ ,Password = Password_ ,Working_Status = Working_Status_ ,
+		User_Type = User_Type_ ,Role_Id = Role_Id_ ,Address1 = Address1_ ,Address2 = Address2_ ,Address3 = Address3_ ,
+		Address4 = Address4_ ,Pincode = Pincode_ ,Mobile = Mobile_ ,Email = Email_,Employee_Id=Employee_Id_ ,Store_Id=Store_Id_
+		Where User_Details_Id=User_Details_Id_ ;
+	ELSE 
+		SET User_Details_Id_ = (SELECT  COALESCE( MAX(User_Details_Id ),0)+1 FROM User_Details); 
+		INSERT INTO User_Details(User_Details_Id ,User_Details_Name ,Password ,Working_Status ,User_Type ,Role_Id ,
+		Address1 ,Address2 ,Address3 ,Address4 ,Pincode ,Mobile ,Email ,Employee_Id,Store_Id,DeleteStatus ) 
+		values (User_Details_Id_ ,User_Details_Name_ ,Password_ ,Working_Status_ ,User_Type_ ,
+		Role_Id_ ,Address1_ ,Address2_ ,Address3_ ,Address4_ ,Pincode_ ,Mobile_ ,Email_ ,Employee_Id_,Store_Id_,false);
+	End If ;
+    WHILE i < JSON_LENGTH(User_Menu_Selection) DO
+		SELECT JSON_UNQUOTE (JSON_EXTRACT(User_Menu_Selection,CONCAT('$[',i,'].Menu_Id'))) INTO Menu_Id_;
+		SELECT JSON_UNQUOTE (JSON_EXTRACT(User_Menu_Selection,CONCAT('$[',i,'].IsEdit'))) INTO IsEdit_;
+        if(IsEdit_='true') 
+			then set IsEdit_=1;
+			else set IsEdit_=0;
+		end if;
+		SELECT JSON_UNQUOTE (JSON_EXTRACT(User_Menu_Selection,CONCAT('$[',i,'].IsSave'))) INTO IsSave_;
+		if(IsSave_='true') 
+			then set IsSave_=1;
+			else set IsSave_=0;
+		end if;
+		SELECT JSON_UNQUOTE (JSON_EXTRACT(User_Menu_Selection,CONCAT('$[',i,'].IsDelete'))) INTO IsDelete_;
+	   if(IsDelete_='true') 
+			then set IsDelete_=1;
+			else set IsDelete_=0;
+		end if;
+           SELECT JSON_UNQUOTE (JSON_EXTRACT(User_Menu_Selection,CONCAT('$[',i,'].IsView'))) INTO IsView_;
+	   if(IsView_='true') 
+			then set IsView_=1;
+			else set IsView_=0;
+		end if;
+        SELECT JSON_UNQUOTE (JSON_EXTRACT(User_Menu_Selection,CONCAT('$[',i,'].Menu_Status'))) INTO Menu_Status_;
+	   if(Menu_Status_='true') 
+			then set Menu_Status_=1;
+			else set Menu_Status_=0;
+		end if;          
+	 INSERT INTO User_Menu_Selection(Menu_Id,User_Id,IsEdit,IsSave,IsDelete ,IsView,Menu_Status,DeleteStatus ) 
+	 values (Menu_Id_ ,User_Details_Id_ ,IsEdit_ ,IsSave_ ,IsDelete_ ,IsView_ ,Menu_Status_ ,false);
+		SELECT i + 1 INTO i;
+	END WHILE;  
+  COMMIT;
+ select User_Details_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_Country`( In Country_Name_ varchar(100))
+Begin 
+ set Country_Name_ = Concat( '%',Country_Name_ ,'%');
+ SELECT Country_Id,
+Country_Name From Country where Country_Name like Country_Name_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_Course_Intake`( In Course_Intake_Name_ varchar(100))
+Begin 
+ set Course_Intake_Name_ = Concat( '%',Course_Intake_Name_ ,'%');
+ SELECT Course_Id,
+Intake_Id From Course_Intake where Course_Intake_Name like Course_Intake_Name_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_Document`( In Document_Name_ varchar(100))
+Begin 
+ set Document_Name_ = Concat( '%',Document_Name_ ,'%');
+ SELECT Document_Id,
+Document_Name From Document where Document_Name like Document_Name_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_Duration`( In Duration_Name_ varchar(100))
+Begin 
+ set Duration_Name_ = Concat( '%',Duration_Name_ ,'%');
+ SELECT Duration_Id,
+Duration_Name From Duration where Duration_Name like Duration_Name_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_Intake`( In Intake_Name_ varchar(100))
+Begin 
+ set Intake_Name_ = Concat( '%',Intake_Name_ ,'%');
+ SELECT Intake_Id,
+Intake_Name From Intake where Intake_Name like Intake_Name_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_Internship`( In Internship_Name_ varchar(100))
+Begin 
+ set Internship_Name_ = Concat( '%',Internship_Name_ ,'%');
+ SELECT Internship_Id,
+Internship_Name From Internship where Internship_Name like Internship_Name_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Delete_Student_Status`( In Student_Status_Id_ Int)
+Begin 
+ update Student_Status set DeleteStatus=true where Student_Status_Id =Student_Status_Id_ ;
+ select Student_Status_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_Intake`( In Intake_Id_ Int)
+Begin 
+ SELECT Intake_Id,
+Intake_Name From Intake where Intake_Id =Intake_Id_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Delete_Student_Message`( In Student_Message_Id_ Int)
+Begin 
+ update Student_Message set DeleteStatus=true where Student_Message_Id =Student_Message_Id_ ;
+ select Student_Message_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Delete_Internship`( In Internship_Id_ Int)
+Begin 
+ update Internship set DeleteStatus=true where Internship_Id =Internship_Id_ ;
+ select Internship_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Delete_Student`( In Student_Id_ Int)
+Begin 
+ update Student set DeleteStatus=true where Student_Id =Student_Id_ ;
+ select Student_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Delete_Intake`( In Intake_Id_ Int)
+Begin 
+ update Intake set DeleteStatus=true where Intake_Id =Intake_Id_ ;
+ select Intake_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Delete_University`( In University_Id_ Int)
+Begin 
+ update University set DeleteStatus=true where University_Id =University_Id_ ;
+ select University_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Delete_Duration`( In Duration_Id_ Int)
+Begin 
+ update Duration set DeleteStatus=true where Duration_Id =Duration_Id_ ;
+ select Duration_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_Duration`( In Duration_Id_ Int)
+Begin 
+ SELECT Duration_Id,
+Duration_Name From Duration where Duration_Id =Duration_Id_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_User_Type`()
+BEGIN
+SELECT User_Type_Id,
+User_Type_Name From User_Type 
+order by User_Type_Name asc ;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_Internship`( In Internship_Id_ Int)
+Begin 
+ SELECT Internship_Id,
+Internship_Name From Internship where Internship_Id =Internship_Id_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Get_Level_Detail`( In Level_Detail_Id_ Int)
+Begin 
+ SELECT Level_Detail_Id,
+Level_Detail_Name From Level_Detail where Level_Detail_Id =Level_Detail_Id_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_Student_Document`( In Student_Document_Name_ varchar(100))
+Begin 
+ set Student_Document_Name_ = Concat( '%',Student_Document_Name_ ,'%');
+ SELECT Student_Document_Id,
+Student_Id,
+Document_Id From Student_Document where Student_Document_Name like Student_Document_Name_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Search_Level_Detail`( In Level_Detail_Name_ varchar(100))
+Begin 
+ set Level_Detail_Name_ = Concat( '%',Level_Detail_Name_ ,'%');
+ SELECT Level_Detail_Id,
+Level_Detail_Name From Level_Detail where Level_Detail_Name like Level_Detail_Name_ and DeleteStatus=false ;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Delete_Course`( In Course_Id_ Int)
+Begin 
+ update Course set DeleteStatus=true where Course_Id =Course_Id_ ;
+ select Course_Id_;
+ End$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Delete_Country`( In Country_Id_ Int)
+Begin 
+ update Country set DeleteStatus=true where Country_Id =Country_Id_ ;
+ select Country_Id_;
+ End$$
+DELIMITER ;

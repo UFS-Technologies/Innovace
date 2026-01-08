@@ -1,0 +1,583 @@
+CREATE TABLE `account_group` (
+  `Account_Group_Id` decimal(18,0) NOT NULL,
+  `Primary_Id` decimal(18,0) DEFAULT NULL,
+  `Group_Code` varchar(50) DEFAULT NULL,
+  `Group_Name` varchar(2000) DEFAULT NULL,
+  `Link_Left` decimal(18,0) DEFAULT NULL,
+  `Link_Right` decimal(18,0) DEFAULT NULL,
+  `Under_Group` decimal(18,0) DEFAULT NULL,
+  `IsPrimary` varchar(1) DEFAULT NULL,
+  `CanDelete` varchar(1) DEFAULT NULL,
+  `UserId` decimal(18,0) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Account_Group_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `accounts` (
+  `Accounts_Id` int(11) NOT NULL,
+  `Entry_Date` datetime DEFAULT NULL,
+  `Client_Id` decimal(18,0) DEFAULT NULL,
+  `Dr` decimal(18,2) DEFAULT NULL,
+  `Cr` decimal(18,2) DEFAULT NULL,
+  `Tran_Type` varchar(5) DEFAULT NULL,
+  `Tran_Id` decimal(18,0) DEFAULT NULL,
+  `Voucher_No` decimal(18,0) DEFAULT NULL,
+  `VoucherType` decimal(18,0) DEFAULT NULL,
+  `Description1` varchar(4000) DEFAULT NULL,
+  `Status` varchar(50) DEFAULT NULL,
+  `DayBook` varchar(1) DEFAULT NULL,
+  `Payment_Status` decimal(18,0) DEFAULT NULL,
+  PRIMARY KEY (`Accounts_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `branch` (
+  `Branch_Id` int(11) NOT NULL,
+  `Branch_Name` varchar(50) DEFAULT NULL,
+  `Address` varchar(50) DEFAULT NULL,
+  `Location` varchar(50) DEFAULT NULL,
+  `District` varchar(50) DEFAULT NULL,
+  `State` varchar(50) DEFAULT NULL,
+  `Country` varchar(50) DEFAULT NULL,
+  `PinCode` varchar(50) DEFAULT NULL,
+  `Phone_Number` varchar(50) DEFAULT NULL,
+  `Email` varchar(50) DEFAULT NULL,
+  `Branch_Code` varchar(10) DEFAULT NULL,
+  `Company` int(11) DEFAULT NULL,
+  `Is_Delete` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Branch_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `branch_department` (
+  `Branch_Department_Id` int(11) NOT NULL AUTO_INCREMENT,
+  `Branch_Id` int(11) DEFAULT NULL,
+  `Department_Id` int(11) DEFAULT NULL,
+  `Is_Delete` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Branch_Department_Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=57 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `client_accounts` (
+  `Client_Accounts_Id` int(11) NOT NULL,
+  `Account_Group_Id` decimal(18,0) DEFAULT NULL,
+  `Client_Accounts_Code` varchar(50) DEFAULT NULL,
+  `Client_Accounts_Name` varchar(500) DEFAULT NULL,
+  `Client_Accounts_No` varchar(50) DEFAULT NULL,
+  `Address1` varchar(250) DEFAULT NULL,
+  `Address2` varchar(250) DEFAULT NULL,
+  `Address3` varchar(250) DEFAULT NULL,
+  `Address4` varchar(250) DEFAULT NULL,
+  `PinCode` varchar(50) DEFAULT NULL,
+  `StateCode` varchar(50) DEFAULT NULL,
+  `GSTNo` varchar(50) DEFAULT NULL,
+  `PanNo` varchar(50) DEFAULT NULL,
+  `State` varchar(1000) DEFAULT NULL,
+  `Country` varchar(1000) DEFAULT NULL,
+  `Phone` varchar(50) DEFAULT NULL,
+  `Mobile` varchar(50) DEFAULT NULL,
+  `Email` varchar(200) DEFAULT NULL,
+  `Opening_Balance` decimal(18,2) DEFAULT NULL,
+  `Description1` varchar(1000) DEFAULT NULL,
+  `Entry_Date` datetime DEFAULT NULL,
+  `UserId` decimal(18,0) DEFAULT NULL,
+  `LedgerInclude` varchar(50) DEFAULT NULL,
+  `CanDelete` varchar(2) DEFAULT NULL,
+  `Commision` decimal(18,2) DEFAULT NULL,
+  `Opening_Type` int(11) DEFAULT NULL,
+  `Employee_Id` decimal(18,0) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Client_Accounts_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `country` (
+  `Country_Id` int(11) NOT NULL,
+  `Country_Name` varchar(50) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Country_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `course` (
+  `Course_Id` int(11) NOT NULL,
+  `Course_Name` varchar(50) DEFAULT NULL,
+  `Course_Code` varchar(10) DEFAULT NULL,
+  `Subject_Id` int(11) DEFAULT NULL,
+  `Duration_Id` int(11) DEFAULT NULL,
+  `Level_Id` int(11) DEFAULT NULL,
+  `Ielts_Minimum_Score` int(11) DEFAULT NULL,
+  `Internship_Id` int(11) DEFAULT NULL,
+  `Notes` varchar(2000) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  `Details` varchar(2000) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  `Application_Fees` int(11) DEFAULT NULL,
+  `University_Id` int(11) DEFAULT NULL,
+  `Country_Id` int(11) DEFAULT NULL,
+  `Tag` varchar(2000) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  `Course_Status` int(11) DEFAULT NULL,
+  `Intake_Name` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  `Tution_Fees` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  `Entry_Requirement` varchar(500) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  `IELTS_Name` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  `Duration` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  `Living_Expense` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  `Work_Experience` varchar(500) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  PRIMARY KEY (`Course_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `course_intake` (
+  `course_intake_id` int(11) NOT NULL AUTO_INCREMENT,
+  `Course_Id` int(11) DEFAULT NULL,
+  `Intake_Id` int(11) DEFAULT NULL,
+  `Intake_Status` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`course_intake_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=530 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `data_log_` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `Description_` varchar(5000) DEFAULT NULL,
+  `data_val` varchar(10) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=94 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `data_logs` (
+  `id` int(11) NOT NULL,
+  `Description_` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `department` (
+  `Department_Id` int(11) NOT NULL AUTO_INCREMENT,
+  `Department_Name` varchar(50) DEFAULT NULL,
+  `FollowUp` tinyint(4) DEFAULT NULL,
+  `Status` varchar(50) DEFAULT NULL,
+  `Department_Order` int(11) DEFAULT NULL,
+  `Color` varchar(50) DEFAULT NULL,
+  `Is_Delete` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Department_Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `department_status` (
+  `Department_Status_Id` int(11) NOT NULL,
+  `Department_Status_Name` varchar(50) DEFAULT NULL,
+  `Status_Order` int(11) DEFAULT NULL,
+  `Editable` tinyint(4) DEFAULT NULL,
+  `Color` varchar(50) DEFAULT NULL,
+  `Is_Delete` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Department_Status_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `document` (
+  `Document_Id` int(11) NOT NULL,
+  `Document_Name` varchar(50) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Document_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `duplicate_students` (
+  `Student_Id` int(11) NOT NULL,
+  `Student_Name` varchar(100) DEFAULT NULL,
+  `Mobile` varchar(100) NOT NULL,
+  `By_User_Name` varchar(100) DEFAULT NULL,
+  `Master_Id` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`Student_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `duration` (
+  `Duration_Id` int(11) NOT NULL,
+  `Duration_Name` varchar(50) DEFAULT NULL,
+  `Selection` tinyint(4) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Duration_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `employee_details` (
+  `Employee_Details_Id` int(11) NOT NULL AUTO_INCREMENT,
+  `Client_Accounts_Id` decimal(18,0) DEFAULT NULL,
+  `Level_Id` decimal(18,0) DEFAULT NULL,
+  `DesigId` decimal(18,0) DEFAULT NULL,
+  `DateOfBirth` datetime DEFAULT NULL,
+  `DateOfJoin` datetime DEFAULT NULL,
+  `ReleiveDate` datetime DEFAULT NULL,
+  `WorkingStatus` varchar(100) DEFAULT NULL,
+  `Locations` varchar(4000) DEFAULT NULL,
+  `Manager_Id` int(11) DEFAULT NULL,
+  `Is_SalesMan` tinyint(4) DEFAULT NULL,
+  `Can_Delete` tinyint(4) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Employee_Details_Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `enquiry_source` (
+  `Enquiry_Source_Id` int(11) NOT NULL,
+  `Enquiry_Source_Name` varchar(45) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Enquiry_Source_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `fees` (
+  `Fees_Id` int(11) NOT NULL,
+  `Fees_Name` varchar(45) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Fees_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `fees_receipt` (
+  `Fees_Receipt_Id` int(11) NOT NULL,
+  `Student_Id` int(11) DEFAULT NULL,
+  `Entry_Date` datetime DEFAULT NULL,
+  `User_Id` int(11) DEFAULT NULL,
+  `Description` varchar(200) DEFAULT NULL,
+  `Fees_Id` int(11) DEFAULT NULL,
+  `Amount` int(11) DEFAULT NULL,
+  `Actual_Entry_Date` datetime DEFAULT NULL,
+  `Delete_Status` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Fees_Receipt_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `ielts` (
+  `Ielts_Id` int(11) NOT NULL,
+  `Ielts_Name` varchar(50) DEFAULT NULL,
+  `Minimum_Score` int(11) DEFAULT NULL,
+  `Maximum_Score` int(11) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Ielts_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `import_detail` (
+  `Import_Master_Id` int(11) NOT NULL,
+  `Course_Id` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `import_master` (
+  `Import_Master_Id` int(11) NOT NULL,
+  `Entry_Date` datetime DEFAULT NULL,
+  PRIMARY KEY (`Import_Master_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `import_students_master` (
+  `Master_Id` int(11) NOT NULL,
+  `By_User_Id` int(11) DEFAULT NULL,
+  `Entry_Date` datetime DEFAULT NULL,
+  PRIMARY KEY (`Master_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `intake` (
+  `Intake_Id` int(11) NOT NULL,
+  `Intake_Name` varchar(50) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Intake_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `internship` (
+  `Internship_Id` int(11) NOT NULL,
+  `Internship_Name` varchar(50) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Internship_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `level_detail` (
+  `Level_Detail_Id` int(11) NOT NULL,
+  `Level_Detail_Name` varchar(50) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Level_Detail_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `menu` (
+  `Menu_Id` decimal(18,0) NOT NULL,
+  `Menu_Name` varchar(250) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  `Menu_Order` decimal(18,0) DEFAULT NULL,
+  `IsEdit` tinyint(4) DEFAULT NULL,
+  `IsSave` tinyint(4) DEFAULT NULL,
+  `IsDelete` tinyint(4) DEFAULT NULL,
+  `IsView` tinyint(4) DEFAULT NULL,
+  `Menu_Status` tinyint(4) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Menu_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+CREATE TABLE `primary_details` (
+  `Primary_Details_Id` decimal(18,0) NOT NULL,
+  `Primary_Code` varchar(50) DEFAULT NULL,
+  `Primary_Name` varchar(50) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Primary_Details_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `remarks` (
+  `Remarks_Id` int(11) NOT NULL,
+  `Remarks_Name` varchar(150) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Remarks_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `settings_table` (
+  `Settings_Id` int(11) NOT NULL,
+  `Settings_Group_Id` int(11) DEFAULT NULL,
+  `Settings_Caption` varchar(45) DEFAULT NULL,
+  `Settings_Value` varchar(45) DEFAULT NULL,
+  `Delete_Status` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Settings_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `status` (
+  `Status_Id` int(11) NOT NULL,
+  `Status_Name` varchar(45) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Status_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `status_selection` (
+  `Status_Selection_Id` int(11) NOT NULL AUTO_INCREMENT,
+  `Department_Id` int(11) DEFAULT NULL,
+  `Status_Id` int(11) DEFAULT NULL,
+  `Is_Delete` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Status_Selection_Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=50 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `student` (
+  `Student_Id` int(11) NOT NULL,
+  `Agent_Id` int(11) DEFAULT NULL,
+  `Entry_Date` datetime DEFAULT NULL,
+  `Student_Name` varchar(50) DEFAULT NULL,
+  `Last_Name` varchar(50) DEFAULT NULL,
+  `Gender` varchar(50) DEFAULT NULL,
+  `Address1` varchar(50) DEFAULT NULL,
+  `Address2` varchar(50) DEFAULT NULL,
+  `Pincode` varchar(7) DEFAULT NULL,
+  `Email` varchar(100) DEFAULT NULL,
+  `Phone_Number` varchar(25) DEFAULT NULL,
+  `Dob` date DEFAULT NULL,
+  `Country` int(11) DEFAULT NULL,
+  `Promotional_Code` varchar(50) DEFAULT NULL,
+  `Student_Status_Id` int(11) DEFAULT NULL,
+  `Password` varchar(20) DEFAULT NULL,
+  `Student_FollowUp_Id` int(11) DEFAULT NULL,
+  `Next_FollowUp_Date` datetime DEFAULT NULL,
+  `Department` int(11) DEFAULT NULL,
+  `Status` int(11) DEFAULT NULL,
+  `User_Id` int(11) DEFAULT NULL,
+  `Branch` int(11) DEFAULT NULL,
+  `Remark` varchar(4000) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `Remark_Id` int(11) DEFAULT NULL,
+  `By_User_Id` int(11) DEFAULT NULL,
+  `Passport_Copy` varchar(100) DEFAULT NULL,
+  `IELTS` varchar(100) DEFAULT NULL,
+  `Passport_Photo` varchar(100) DEFAULT NULL,
+  `Tenth_Certificate` varchar(100) DEFAULT NULL,
+  `Work_Experience` varchar(100) DEFAULT NULL,
+  `Resume` varchar(100) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  `Enquiry_Source_Id` int(11) DEFAULT NULL,
+  `Alternative_Phone_Number` varchar(45) DEFAULT NULL,
+  `Alternative_Email` varchar(100) DEFAULT NULL,
+  `Whatsapp` varchar(45) DEFAULT NULL,
+  `Facebook` varchar(45) DEFAULT NULL,
+  `Passport_Copy_File_Name` varchar(500) DEFAULT NULL,
+  `IELTS_File_Name` varchar(500) DEFAULT NULL,
+  `Passport_Photo_File_Name` varchar(500) DEFAULT NULL,
+  `Tenth_Certificate_File_Name` varchar(500) DEFAULT NULL,
+  `Work_Experience_File_Name` varchar(500) DEFAULT NULL,
+  `Resume_File_Name` varchar(500) DEFAULT NULL,
+  `Is_Registered` tinyint(4) DEFAULT NULL,
+  `Registered_By` int(11) DEFAULT NULL,
+  `Registered_On` datetime DEFAULT NULL,
+  `Created_By` int(11) DEFAULT NULL,
+  `Registration_Target` int(11) DEFAULT NULL,
+  `FollowUp_Count` int(11) DEFAULT NULL,
+  `FollowUp_EntryDate` datetime DEFAULT NULL,
+  PRIMARY KEY (`Student_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `student_course_apply` (
+  `Student_Course_Apply_Id` int(11) NOT NULL,
+  `Student_Id` int(11) DEFAULT NULL,
+  `Entry_Date` datetime DEFAULT NULL,
+  `Status_Id` int(11) DEFAULT NULL,
+  `Paid_On` date DEFAULT NULL,
+  `Description1` varchar(50) DEFAULT NULL,
+  `Description2` varchar(50) DEFAULT NULL,
+  `Total_Course` int(11) DEFAULT NULL,
+  `Paid_Fees` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`Student_Course_Apply_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `student_course_selection` (
+  `Student_Course_Selection_Id` int(11) NOT NULL AUTO_INCREMENT,
+  `Course_Id` int(11) DEFAULT NULL,
+  `Fees` decimal(10,0) DEFAULT NULL,
+  `Student_Course_Apply_Id` int(11) DEFAULT NULL,
+  `Status_Id` int(11) DEFAULT NULL,
+  `Paid_On` date DEFAULT NULL,
+  `Description1` varchar(50) DEFAULT NULL,
+  `Description2` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`Student_Course_Selection_Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=56 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `student_document` (
+  `Student_Document_Id` int(11) NOT NULL AUTO_INCREMENT,
+  `Student_Id` int(11) DEFAULT NULL,
+  `Entry_Date` date DEFAULT NULL,
+  `File_Name` varchar(500) DEFAULT NULL,
+  `Document_Id` int(11) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  `Document_Name` varchar(500) DEFAULT NULL,
+  `Document_File_Name` varchar(500) DEFAULT NULL,
+  PRIMARY KEY (`Student_Document_Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `student_followup` (
+  `Student_FollowUp_Id` int(11) NOT NULL AUTO_INCREMENT,
+  `Student_Id` int(11) DEFAULT NULL,
+  `Entry_Date` datetime DEFAULT NULL,
+  `Next_FollowUp_Date` datetime DEFAULT NULL,
+  `FollowUp_Difference` int(11) DEFAULT NULL,
+  `Department` int(11) DEFAULT NULL,
+  `Status` int(11) DEFAULT NULL,
+  `User_Id` int(11) DEFAULT NULL,
+  `Branch` int(11) DEFAULT NULL,
+  `Remark` varchar(4000) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `Remark_Id` int(11) DEFAULT NULL,
+  `By_User_Id` int(11) DEFAULT NULL,
+  `FollowUp_Type` int(11) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  `FollowUP_Time` datetime DEFAULT NULL,
+  `Actual_FollowUp_Date` datetime DEFAULT NULL,
+  PRIMARY KEY (`Student_FollowUp_Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=392 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `student_message` (
+  `Student_Message_Id` int(11) NOT NULL,
+  `Student_Id` int(11) DEFAULT NULL,
+  `Message_Detail` varchar(2000) DEFAULT NULL,
+  `Entry_Date` date DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Student_Message_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `student_status` (
+  `Student_Status_Id` int(11) NOT NULL,
+  `Student_Status_Name` varchar(50) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Student_Status_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `subject` (
+  `Subject_Id` int(11) NOT NULL,
+  `Subject_Name` varchar(150) DEFAULT NULL,
+  `Selection` tinyint(4) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`Subject_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `temptable` (
+  `tempid` int(11) NOT NULL,
+  `tempdata` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`tempid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `university` (
+  `University_Id` decimal(18,0) NOT NULL,
+  `University_Name` varchar(150) DEFAULT NULL,
+  `About` varchar(500) DEFAULT NULL,
+  `About1` varchar(500) DEFAULT NULL,
+  `About2` varchar(500) DEFAULT NULL,
+  `Location` varchar(50) DEFAULT NULL,
+  `Address` varchar(150) DEFAULT NULL,
+  `Founded_In` varchar(50) DEFAULT NULL,
+  `Institution_Type` varchar(50) DEFAULT NULL,
+  `Cost_Of_Living` varchar(50) DEFAULT NULL,
+  `Tution_Fee` varchar(50) DEFAULT NULL,
+  `Application_Fee` varchar(50) DEFAULT NULL,
+  `Type_Of_Accomodation` varchar(50) DEFAULT NULL,
+  `Contact_Number` varchar(50) DEFAULT NULL,
+  `Email` varchar(50) DEFAULT NULL,
+  `Web` varchar(500) DEFAULT NULL,
+  `Fb` varchar(500) DEFAULT NULL,
+  `Linkedin` varchar(500) DEFAULT NULL,
+  `Twitter` varchar(500) DEFAULT NULL,
+  `Googlemap` varchar(500) DEFAULT NULL,
+  `Status` int(11) DEFAULT NULL,
+  `Country_Id` int(11) DEFAULT NULL,
+  `Sub_Heading1` varchar(500) DEFAULT NULL,
+  `Sub_Heading2` varchar(500) DEFAULT NULL,
+  `Sub_Heading3` varchar(500) DEFAULT NULL,
+  `School_Rank` varchar(50) DEFAULT NULL,
+  `Video_Link` varchar(500) DEFAULT NULL,
+  `Sub_Heading_Colored` varchar(500) DEFAULT NULL,
+  `Banner_Image` varchar(500) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`University_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `university_photos` (
+  `University_Photos_Id` int(11) NOT NULL AUTO_INCREMENT,
+  `University_Id` int(11) DEFAULT NULL,
+  `University_Image` varchar(45) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`University_Photos_Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `user_department` (
+  `User_Department_Id` int(11) NOT NULL AUTO_INCREMENT,
+  `User_Id` int(11) DEFAULT NULL,
+  `Department_Id` int(11) DEFAULT NULL,
+  `Branch_Id` int(11) DEFAULT NULL,
+  `View_Entry` tinyint(4) DEFAULT NULL,
+  `VIew_All` tinyint(4) DEFAULT NULL,
+  `Is_Delete` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`User_Department_Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=6764 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `user_details` (
+  `User_Details_Id` decimal(18,0) NOT NULL,
+  `User_Details_Name` varchar(250) DEFAULT NULL,
+  `Password` varchar(250) DEFAULT NULL,
+  `Working_Status` varchar(250) DEFAULT NULL,
+  `User_Type` int(11) DEFAULT NULL,
+  `Role_Id` decimal(18,0) DEFAULT NULL,
+  `Branch_Id` int(11) DEFAULT NULL,
+  `Address1` varchar(250) DEFAULT NULL,
+  `Address2` varchar(250) DEFAULT NULL,
+  `Address3` varchar(250) DEFAULT NULL,
+  `Address4` varchar(250) DEFAULT NULL,
+  `Pincode` varchar(200) DEFAULT NULL,
+  `Mobile` varchar(250) DEFAULT NULL,
+  `Email` varchar(250) DEFAULT NULL,
+  `Employee_Id` int(11) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  `Registration_Target` int(11) DEFAULT NULL,
+  `FollowUp_Target` int(11) DEFAULT NULL,
+  PRIMARY KEY (`User_Details_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+CREATE TABLE `user_menu_selection` (
+  `User_Menu_Selection_Id` int(11) NOT NULL AUTO_INCREMENT,
+  `Menu_Id` decimal(18,0) DEFAULT NULL,
+  `User_Id` decimal(18,0) DEFAULT NULL,
+  `IsEdit` tinyint(4) DEFAULT NULL,
+  `IsSave` tinyint(4) DEFAULT NULL,
+  `IsDelete` tinyint(4) DEFAULT NULL,
+  `IsView` tinyint(4) DEFAULT NULL,
+  `Menu_Status` tinyint(4) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`User_Menu_Selection_Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4205 DEFAULT CHARSET=latin1;
+
+CREATE TABLE `user_role` (
+  `User_Role_Id` int(11) NOT NULL,
+  `User_Role_Name` varchar(50) DEFAULT NULL,
+  `Role_Under_Id` int(11) DEFAULT NULL,
+  `Is_Delete` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`User_Role_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+CREATE TABLE `user_status` (
+  `User_Status_Id` int(11) NOT NULL,
+  `User_Status_Name` varchar(50) DEFAULT NULL,
+  `Is_Delete` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`User_Status_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+CREATE TABLE `user_type` (
+  `User_Type_Id` int(11) NOT NULL,
+  `User_Type_Name` varchar(50) DEFAULT NULL,
+  `DeleteStatus` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`User_Type_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;

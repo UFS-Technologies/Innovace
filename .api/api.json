@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "apis": [
+    {
+      "identifier": "telr-api",
+      "source": "@telr-api/v1.0#f0vn439llhl0gkv",
+      "integrity": "sha512-ykzPhnKgON1YhXV1QbFS3zdqnLcMznbPIJK6nSbHAi/e65LnivT6m4EbEHWP4rE8AytpWLQOzbuCXWBqbxHSwg==",
+      "installerVersion": "6.1.1"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Save_Bank_Statement_Master_Import`(in Bank_Statement_Master_Id_ int,
+Bank_Id_ int,Entry_Date_ datetime,Attachment_ varchar(100),User_Id_ int,
+Bank_Statement_Status_Id_ int,Bank_Statement_Details json)
+BEGIN
+
+ Declare Particulars_ varchar(4000); Declare Date_ Datetime;Declare Slno_ int;
+ Declare Deposit_ decimal(18,2); Declare Withdrawal_ decimal(18,2);
+ Declare Balance_ decimal(18,2);
+ Declare chequeNo_ varchar(100); Declare chequedate_ Varchar(50);
+ Declare Bank_Statement_Status_Id_ int; Declare Description_ Varchar(4000);
+Declare Approved_By_ int; Declare Approved_Date_ datetime;
+Declare i int default 0;
+
+
+DECLARE exit handler for sqlexception
+BEGIN
+	GET DIAGNOSTICS CONDITION 1
+	@p1 = RETURNED_SQLSTATE, @p2 = MESSAGE_TEXT;
+	SELECT @p2 AS MESSAGE_TEXT, @p1 AS RETURNED_SQLSTATE;
+	ROLLBACK;
+END;
+    DECLARE exit handler for sqlwarning
+BEGIN
+	GET DIAGNOSTICS CONDITION 1
+	@p1 = RETURNED_SQLSTATE, @p2 = MESSAGE_TEXT;
+	SELECT @p2 AS MESSAGE_TEXT, @p1 AS RETURNED_SQLSTATE;
+	ROLLBACK;
+END;
+    START TRANSACTION;
+  
+	SET Bank_Statement_Master_Id_ = (SELECT  COALESCE( MAX(Bank_Statement_Master_Id ),0)+1 From  bank_statement_master); 
+	 INSERT INTO bank_statement_master(Bank_Statement_Master_Id ,Bank_Id ,Entry_Date ,Attachment ,User_Id,
+	 Bank_Statement_Status_Id ,Approved_By,Approved_Date,DeleteStatus ) 
+	 values (Bank_Statement_Master_Id_ ,Bank_Id_ ,Entry_Date_ ,Attachment_,User_Id_,
+	 1,1,Curdate() ,false);
+  
+	
+WHILE i < JSON_LENGTH(Bank_Statement_Details) DO
+    SELECT JSON_UNQUOTE (JSON_EXTRACT(Bank_Statement_Details,CONCAT('$[',i,'].Particulars'))) INTO Particulars_;
+    #SELECT JSON_UNQUOTE (JSON_EXTRACT(Bank_Statement_Details,CONCAT('$[',i,'].Date'))) INTO Date_;
+	SELECT JSON_UNQUOTE (JSON_EXTRACT(Bank_Statement_Details,CONCAT('$[',i,'].Slno'))) INTO Slno_;    
+	SELECT JSON_UNQUOTE (JSON_EXTRACT(Bank_Statement_Details,CONCAT('$[',i,'].Deposit'))) INTO Deposit_;
+	SELECT JSON_UNQUOTE (JSON_EXTRACT(Bank_Statement_Details,CONCAT('$[',i,'].Withdrawal'))) INTO Withdrawal_;
+	SELECT JSON_UNQUOTE (JSON_EXTRACT(Bank_Statement_Details,CONCAT('$[',i,'].Balance'))) INTO Balance_;
+	SELECT JSON_UNQUOTE (JSON_EXTRACT(Bank_Statement_Details,CONCAT('$[',i,'].chequeNo'))) INTO chequeNo_;
+	SELECT JSON_UNQUOTE (JSON_EXTRACT(Bank_Statement_Details,CONCAT('$[',i,'].chequedate_'))) INTO chequedate_;
+	SELECT JSON_UNQUOTE (JSON_EXTRACT(Bank_Statement_Details,CONCAT('$[',i,'].Bank_Statement_Status_Id'))) INTO Bank_Statement_Status_Id_;
+    SELECT JSON_UNQUOTE (JSON_EXTRACT(Bank_Statement_Details,CONCAT('$[',i,'].Approved_By'))) INTO Approved_By_;
+	SELECT JSON_UNQUOTE (JSON_EXTRACT(Bank_Statement_Details,CONCAT('$[',i,'].Approved_Date'))) INTO Approved_Date_;
+ 	SELECT JSON_UNQUOTE (JSON_EXTRACT(Bank_Statement_Details,CONCAT('$[',i,'].Description'))) INTO Description_;
+
+
+	 INSERT INTO bank_statement_details(Bank_Statement_Master_Id ,Slno,Date,Particulars,Deposit,Withdrawal,
+     Balance,chequeNo,chequedate,Bank_Statement_Status_Id,Approved_By,Approved_Date,Description,DeleteStatus ) 
+	 values (Bank_Statement_Master_Id_ ,Slno_,Entry_Date_,Particulars_,Deposit_,Withdrawal_,
+     Balance_,chequeNo_,chequedate_,1,1,curdate(),Description_,false);
+SELECT i + 1 INTO i;    
+end While;
+commit;
+ select Bank_Statement_Master_Id_;
+
+END
