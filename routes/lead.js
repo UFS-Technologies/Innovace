@@ -5,9 +5,9 @@ const jwtMiddleware = require('../helpers/jwt');
 
 router.post("/Save_lead/", function (req, res, next) {
   console.log("req.user id is ", req.User_Details_Id || req.user.id);
-  console.log("The datas that are coming is",req.body)
+  console.log("The datas that are coming is", req.body)
   console.log('req.body.customFields,: ', req.body.customFields,);
-    console.log('req.body.lead.customFields: ', req.body.lead.customFields);
+  console.log('req.body.lead.customFields: ', req.body.lead.customFields);
   try {
     lead.Save_lead(
       req.body.lead,
@@ -15,7 +15,7 @@ router.post("/Save_lead/", function (req, res, next) {
       req.User_Details_Id,
       req.body.lead.customFields,
       req.body.lead.enquiryForCustomFields,
-      
+
       function (err, rows) {
         if (err) {
           console.error("Error saving lead:", err);
@@ -43,7 +43,7 @@ router.get("/Get_Lead_Report_By_Enquiry_Source/", function (req, res, next) {
       function (err, rows) {
         if (err) {
           console.log("err: ", err);
-          
+
           res.json(err);
         } else {
           res.json(rows[0]);
@@ -58,8 +58,8 @@ router.get("/Get_Lead_Report_By_Enquiry_Source/", function (req, res, next) {
 
 router.get("/Search_lead/", function (req, res, next) {
   try {
-    console.log("req.query: ", req.query);
 
+    console.log("req.query: ", req.User_Details_Id);
     lead.Search_lead(
       req.query.lead_Name,
       req.query.Is_Date,
@@ -89,6 +89,7 @@ router.get("/Search_lead/", function (req, res, next) {
 
 router.get("/Search_Customer/", function (req, res, next) {
   try {
+    console.log("req.query: ", req.User_Details_Id);
     lead.Search_Customer(
       req.query.Customer_Name,
       req.query.Is_Date,
@@ -163,10 +164,10 @@ router.get("/Search_Enquiry_Source/", function (req, res, next) {
       req.query.Enquiry_Source_Name,
       function (err, rows) {
         if (err) {
-          console.log('<<<<<<<<<<<',err)
+          console.log('<<<<<<<<<<<', err)
           res.json(err);
         } else {
-          console.log(',,,,,,,',rows)
+          console.log(',,,,,,,', rows)
           res.json(rows[0]);
         }
       }
@@ -327,32 +328,32 @@ router.get('/Get_engineer_details', (req, res) => {
 
 
 router.get('/Search_engineers', (req, res) => {
-    console.log("🚀 Route hit: /Search_engineers");
+  console.log("🚀 Route hit: /Search_engineers");
 
-    const filters = {
-        Status_Id: req.query.Status_Id ? parseInt(req.query.Status_Id) : null,
-        From_Date: req.query.From_Date || null,
-        To_Date: req.query.To_Date || null,
-        To_Staff_Id: req.query.To_Staff_Id ? parseInt(req.query.To_Staff_Id) : null, // <- corrected
-        Engineer_Name_Phone: req.query.Engineer_Name_Phone || null,
-        Page_Start: req.query.Page_Start ? parseInt(req.query.Page_Start) : 1,
-        Page_End: req.query.Page_End ? parseInt(req.query.Page_End) : 10
-    };
+  const filters = {
+    Status_Id: req.query.Status_Id ? parseInt(req.query.Status_Id) : null,
+    From_Date: req.query.From_Date || null,
+    To_Date: req.query.To_Date || null,
+    To_Staff_Id: req.query.To_Staff_Id ? parseInt(req.query.To_Staff_Id) : null, // <- corrected
+    Engineer_Name_Phone: req.query.Engineer_Name_Phone || null,
+    Page_Start: req.query.Page_Start ? parseInt(req.query.Page_Start) : 1,
+    Page_End: req.query.Page_End ? parseInt(req.query.Page_End) : 10
+  };
 
-    console.log("Filters:", filters);
+  console.log("Filters:", filters);
 
-    lead.Search_engineers(filters, (err, rows) => {
-        if (err) {
-            console.error("DB Error:", err);
-            return res.status(500).json({ success: false, message: "Failed to fetch engineers", error: err });
-        }
+  lead.Search_engineers(filters, (err, rows) => {
+    if (err) {
+      console.error("DB Error:", err);
+      return res.status(500).json({ success: false, message: "Failed to fetch engineers", error: err });
+    }
 
-        res.json({
-            success: true,
-            message: "Engineers fetched successfully",
-            data: rows[0]
-        });
+    res.json({
+      success: true,
+      message: "Engineers fetched successfully",
+      data: rows[0]
     });
+  });
 });
 
 // router.get('/get_association', (req, res) => {
@@ -398,9 +399,9 @@ router.get('/Search_customer_master/:name?/:phone?', (req, res) => {
     res.json(rows[0]); // Returns matching customers
   });
 });
-router.delete('/Delete_customer_master/:customer_master_id?', function(req, res, next) { 
+router.delete('/Delete_customer_master/:customer_master_id?', function (req, res, next) {
   try {
-    lead.Delete_customer_master(req.params.customer_master_id, function(err, rows) {
+    lead.Delete_customer_master(req.params.customer_master_id, function (err, rows) {
       if (err) {
         res.json(err);
       } else {
@@ -413,32 +414,32 @@ router.delete('/Delete_customer_master/:customer_master_id?', function(req, res,
   }
 });
 router.get('/Get_Engineer_Department', function (req, res, next) {
-    try {
-        lead.Get_Engineer_Department(
-            req.query.Engineer_Department_Name,
-            function (err, result) {
-                if (err) {
-                    res.status(500).json({
-                        success: false,
-                        message: 'Failed to get engineer department',
-                        error: err,
-                    });
-                } else {
-                    res.json({
-                        success: true,
-                        message: 'Engineer department fetch successful',
-                        data: result,
-                    });
-                }
-            }
-        );
-    } catch (e) {
-        res.status(500).json({
+  try {
+    lead.Get_Engineer_Department(
+      req.query.Engineer_Department_Name,
+      function (err, result) {
+        if (err) {
+          res.status(500).json({
             success: false,
-            message: 'Internal server error',
-            error: e.message,
-        });
-    }
+            message: 'Failed to get engineer department',
+            error: err,
+          });
+        } else {
+          res.json({
+            success: true,
+            message: 'Engineer department fetch successful',
+            data: result,
+          });
+        }
+      }
+    );
+  } catch (e) {
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: e.message,
+    });
+  }
 });
 
 
@@ -446,34 +447,34 @@ router.get('/Get_Engineer_Department', function (req, res, next) {
 
 
 router.post('/Save_engineers', jwtMiddleware(), (req, res) => {
-    console.log("🚀 Route hit: /Save_engineers");
+  console.log("🚀 Route hit: /Save_engineers");
 
-    const userId = req.User_Details_Id; // From token
-    console.log("User ID from token:", userId);
+  const userId = req.User_Details_Id; // From token
+  console.log("User ID from token:", userId);
 
-    const data = req.body;
-    data.User_Id = userId; // Pass user id to model
+  const data = req.body;
+  data.User_Id = userId; // Pass user id to model
 
-    console.log("Request body for DB:", data);
+  console.log("Request body for DB:", data);
 
-    lead.Save_engineers(data, (err, rows) => {
-        if (err) {
-            console.error("DB Error:", err);
-            return res.status(500).json({ message: 'Failed to save engineer', error: err });
-        }
+  lead.Save_engineers(data, (err, rows) => {
+    if (err) {
+      console.error("DB Error:", err);
+      return res.status(500).json({ message: 'Failed to save engineer', error: err });
+    }
 
-        console.log("DB result:", rows);
+    console.log("DB result:", rows);
 
-        res.json({
-            message: "Engineer saved successfully",
-            engineer_id: rows[0][0].Engineers_Id
-        });
+    res.json({
+      message: "Engineer saved successfully",
+      engineer_id: rows[0][0].Engineers_Id
     });
+  });
 });
 
-router.delete('/Delete_engineers/:engineers_Id_?', function(req, res, next) { 
+router.delete('/Delete_engineers/:engineers_Id_?', function (req, res, next) {
   try {
-    lead.Delete_engineers(req.params.engineers_Id_, function(err, rows) {
+    lead.Delete_engineers(req.params.engineers_Id_, function (err, rows) {
       if (err) {
         res.json(err);
       } else {
@@ -627,22 +628,22 @@ router.put("/Update_Customer/", function (req, res, next) {
   }
 });
 router.get('/engineer_enquiry_source', (req, res) => {
-    lead.Get_Engineer_Enquiry_Source((err, rows) => {
-        if (err) {
-            console.error("DB Error:", err);
-            return res.status(500).json({
-                success: false,
-                message: "Failed to fetch engineer enquiry sources",
-                error: err
-            });
-        }
+  lead.Get_Engineer_Enquiry_Source((err, rows) => {
+    if (err) {
+      console.error("DB Error:", err);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch engineer enquiry sources",
+        error: err
+      });
+    }
 
-        res.json({
-            success: true,
-            message: "Engineer enquiry sources fetched successfully",
-            data: rows[0]
-        });
+    res.json({
+      success: true,
+      message: "Engineer enquiry sources fetched successfully",
+      data: rows[0]
     });
+  });
 });
 
 router.post("/Save_Enquiry_Source/", function (req, res, next) {
@@ -708,7 +709,7 @@ router.get("/Search_Checklist/", function (req, res, next) {
 });
 
 router.post("/Save_Enquiry_For/", function (req, res, next) {
-  console.log("<<<<<<<<<<",req.body)
+  console.log("<<<<<<<<<<", req.body)
   try {
     lead.Save_Enquiry_For(req.body, function (err, rows) {
       if (err) {
@@ -973,9 +974,9 @@ router.post("/Save_Stage/", function (req, res, next) {
         res.json({
           success: true,
           message:
-          req.body.Stage_Id > 0
-            ? "Stage updated successfully."
-            : "Stage added successfully.",
+            req.body.Stage_Id > 0
+              ? "Stage updated successfully."
+              : "Stage added successfully.",
           Result: rows[0][0],
         });
       }
@@ -1029,9 +1030,9 @@ router.post("/Save_Source_Category/", function (req, res, next) {
         res.json({
           success: true,
           message:
-          req.body.Source_Category_Id > 0
-            ? "Source_Category updated successfully."
-            : "Source_Category added successfully.",
+            req.body.Source_Category_Id > 0
+              ? "Source_Category updated successfully."
+              : "Source_Category added successfully.",
           Result: rows[0][0],
         });
       }
@@ -1105,7 +1106,7 @@ router.get("/Get_CustomFields_On_EnquirySource", function (req, res, next) {
 });
 
 router.get("/Get_CustomFields_On_EnquiryFor", function (req, res, next) {
-  console.log("ggggggggg",req.query)
+  console.log("ggggggggg", req.query)
   try {
     lead.Get_CustomFields_On_EnquiryFor(
       req.query.enquiry_for_id,

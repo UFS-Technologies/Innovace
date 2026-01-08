@@ -2,10 +2,10 @@ var db = require("../dbconnection");
 var fs = require("fs");
 const uuid = require("uuid");
 var lead = {
-  Save_lead: function (lead_, followup_, User_Details_Id,customFields_, enquiryForCustomFields_, callback) {
+  Save_lead: function (lead_, followup_, User_Details_Id, customFields_, enquiryForCustomFields_, callback) {
     console.log("lead_: ", lead_);
     console.log("followup_: ", followup_);
-  console.log("customFields_: ", customFields_);
+    console.log("customFields_: ", customFields_);
     let FollowUp_Value_ = 0;
 
     if (
@@ -15,7 +15,7 @@ var lead = {
       lead_.Customer_Id === 0
     ) {
       FollowUp_Value_ = 1;
-         
+
       // Add custom fields to followup data if they exist
       let transformedCustomFields = null;
       if (customFields_ && Array.isArray(customFields_) && customFields_.length > 0) {
@@ -25,13 +25,13 @@ var lead = {
         }));
 
         let transformedenquiryCustomFields = null;
-      if (enquiryForCustomFields_ && Array.isArray(enquiryForCustomFields_) && enquiryForCustomFields_.length > 0) {
-        transformedenquiryCustomFields = enquiryForCustomFields_.map(field => ({
-          custom_field_id: field.custom_field_id,  // Map to expected field name
-          value: field.value                   // Map to expected field name
-        }));
+        if (enquiryForCustomFields_ && Array.isArray(enquiryForCustomFields_) && enquiryForCustomFields_.length > 0) {
+          transformedenquiryCustomFields = enquiryForCustomFields_.map(field => ({
+            custom_field_id: field.custom_field_id,  // Map to expected field name
+            value: field.value                   // Map to expected field name
+          }));
 
-      }
+        }
         console.log("Transformed customFields:", transformedCustomFields);        // Add transformed custom fields to followup data
         followup_.CustomFields = transformedCustomFields;
       }
@@ -52,9 +52,9 @@ var lead = {
         Branch_Name: "",
         Department_Id: 0,
         Department_Name: "",
-        Stage_Id:0,
-        Stage_Name:"",
-        Percentage:0.00
+        Stage_Id: 0,
+        Stage_Name: "",
+        Percentage: 0.00
       };
     }
 
@@ -146,28 +146,28 @@ var lead = {
 
        )
     `;
-   // Prepare customFields for the stored procedure
+    // Prepare customFields for the stored procedure
     // The Save_lead procedure expects customFields as a separate parameter
     let customFieldsForProcedure = null;
     if (customFields_ && Array.isArray(customFields_) && customFields_.length > 0) {
-        // Transform to match stored procedure expectations
-        const transformedFields = customFields_.map(field => ({
-            customefieldid: field.custom_field_id,
-            datavalue: field.value
-        }));
-        customFieldsForProcedure = JSON.stringify(transformedFields);
-        console.log("customFieldsForProcedure JSON:", customFieldsForProcedure);
+      // Transform to match stored procedure expectations
+      const transformedFields = customFields_.map(field => ({
+        customefieldid: field.custom_field_id,
+        datavalue: field.value
+      }));
+      customFieldsForProcedure = JSON.stringify(transformedFields);
+      console.log("customFieldsForProcedure JSON:", customFieldsForProcedure);
     }
 
     let enquirycustomFieldsForProcedure = null;
     if (enquiryForCustomFields_ && Array.isArray(enquiryForCustomFields_) && enquiryForCustomFields_.length > 0) {
-        // Transform to match stored procedure expectations
-        const transformedFields = enquiryForCustomFields_.map(field => ({
-           custom_field_id: field.custom_field_id,  // Map to expected field name
-          value: field.value  
-        }));
-        enquirycustomFieldsForProcedure = JSON.stringify(transformedFields);
-        console.log("enquirycustomFieldsForProcedure JSON:", enquirycustomFieldsForProcedure);
+      // Transform to match stored procedure expectations
+      const transformedFields = enquiryForCustomFields_.map(field => ({
+        custom_field_id: field.custom_field_id,  // Map to expected field name
+        value: field.value
+      }));
+      enquirycustomFieldsForProcedure = JSON.stringify(transformedFields);
+      console.log("enquirycustomFieldsForProcedure JSON:", enquirycustomFieldsForProcedure);
     }
 
     const parameters = [
@@ -239,22 +239,22 @@ var lead = {
       lead_.Percentage,
       lead_.Deal_State_Id,
       lead_.Deal_State_Name,
-          lead_.Lead_Type_Id,
+      lead_.Lead_Type_Id,
       lead_.Lead_Type_Name,
       lead_.Age,
       lead_.PE_Id,
-lead_.PE_Name,
-lead_.CRE_Id,
-lead_.CRE_Name,
-       customFieldsForProcedure,
-       enquirycustomFieldsForProcedure,
-         lead_.City_Id,
-          lead_.City_Name,
-           lead_.Fire_Station_Id, 
-           lead_.Fire_Station_Name,
-           lead_.Engineers_Id,
-          lead_.Engineer_Name,
-          lead_.Customer_Master_Id
+      lead_.PE_Name,
+      lead_.CRE_Id,
+      lead_.CRE_Name,
+      customFieldsForProcedure,
+      enquirycustomFieldsForProcedure,
+      lead_.City_Id,
+      lead_.City_Name,
+      lead_.Fire_Station_Id,
+      lead_.Fire_Station_Name,
+      lead_.Engineers_Id,
+      lead_.Engineer_Name,
+      lead_.Customer_Master_Id
 
 
 
@@ -274,13 +274,13 @@ lead_.CRE_Name,
       callback
     );
   },
- Get_City_Fire_Station_by_DistrictId: function (District_Id_, callback) {
-  return db.query(
-    "CALL Get_City_Fire_Station_by_DistrictId(?)",
-    [District_Id_],
-    callback
-  );
-},
+  Get_City_Fire_Station_by_DistrictId: function (District_Id_, callback) {
+    return db.query(
+      "CALL Get_City_Fire_Station_by_DistrictId(?)",
+      [District_Id_],
+      callback
+    );
+  },
 
 
   Get_Lead_Report_By_Enquiry_Source: function (
@@ -586,17 +586,17 @@ lead_.CRE_Name,
   Update_Customer: function (lead_, callback) {
     return db.query(
       "CALL Update_Customer(" +
-        "@Customer_Id_ :=?," +
-        "@Customer_Name_ :=?," +
-        "@Contact_Number_ :=?," +
-        "@Email_ :=?," +
-        "@Address1_ :=?," +
-        "@Address2_ :=?," +
-        "@Address3_ :=?," +
-        "@Address4_ :=?," +
-        "@Map_Link_ :=?," +
-        "@Pincode_ :=?" +
-        ")",
+      "@Customer_Id_ :=?," +
+      "@Customer_Name_ :=?," +
+      "@Contact_Number_ :=?," +
+      "@Email_ :=?," +
+      "@Address1_ :=?," +
+      "@Address2_ :=?," +
+      "@Address3_ :=?," +
+      "@Address4_ :=?," +
+      "@Map_Link_ :=?," +
+      "@Pincode_ :=?" +
+      ")",
       [
         lead_.Customer_Id,
         lead_.Customer_Name,
@@ -612,16 +612,16 @@ lead_.CRE_Name,
       callback
     );
   },
-  Get_Engineer_Enquiry_Source: function(callback) {
-        return db.query("CALL Get_Engineer_Enquiry_Source()", callback);
-    },
+  Get_Engineer_Enquiry_Source: function (callback) {
+    return db.query("CALL Get_Engineer_Enquiry_Source()", callback);
+  },
 
   Save_Enquiry_Source: function (enquiry_source_, callback) {
     return db.query(
       "CALL Save_Enquiry_Source(?,?,?,?)",
-       // "@Source_Category_Id_ :=?," +
-        //"@Source_Category_Name_ :=?" +
-        
+      // "@Source_Category_Id_ :=?," +
+      //"@Source_Category_Name_ :=?" +
+
       [
         enquiry_source_.Enquiry_Source_Id,
         enquiry_source_.Enquiry_Source_Name,
@@ -664,16 +664,16 @@ lead_.CRE_Name,
 
     // ✅ Automatically add Order_By index if not provided
     customFields = customFields.map((field, index) => ({
-        ...field,
-        Order_By: field.Order_By || index + 1
+      ...field,
+      Order_By: field.Order_By || index + 1
     }));
 
     return db.query(
-    
+
       "CALL Save_Enquiry_For(?, ?, ?, ?, ?)",
-    
-      [enquiry_for_.Enquiry_For_Id, enquiry_for_.Enquiry_For_Name,enquiry_for_.Source_Category_Id,
-        enquiry_for_.Source_Category_Name,JSON.stringify(enquiry_for_.Custom_Fields)],
+
+      [enquiry_for_.Enquiry_For_Id, enquiry_for_.Enquiry_For_Name, enquiry_for_.Source_Category_Id,
+      enquiry_for_.Source_Category_Name, JSON.stringify(enquiry_for_.Custom_Fields)],
       callback
     );
   },
@@ -681,9 +681,9 @@ lead_.CRE_Name,
   Save_Checklist: function (checklist_, callback) {
     return db.query(
       "CALL Save_Checklist(" +
-        "@Checklist_Id_ :=?," +
-        "@Checklist_Name_ :=?" +
-        ")",
+      "@Checklist_Id_ :=?," +
+      "@Checklist_Name_ :=?" +
+      ")",
       [checklist_.Checklist_Id, checklist_.Checklist_Name],
       callback
     );
@@ -763,27 +763,27 @@ lead_.CRE_Name,
   Import_Engineer: function (data, callback) {
     console.log("Engineer Import data: ", data);
     return db.query(
-  "CALL Engineer_Import(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-  [
-    JSON.stringify(data.Engineer_Details),
-    data.By_User_Id,
-    data.By_User_Name,
-    data.Status,
-    data.Status_Name,
-    data.To_User,
-    data.To_User_Name,
-    data.Enquiry_Source,
-    data.Enquiry_Source_Name,
-    data.Next_FollowUp_Date,
-    data.Status_FollowUp,
-    data.Remark,
-    data.Enquiry_For_Id,
-    data.Enquiry_For_Name
-  ],
-  callback
-);
+      "CALL Engineer_Import(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      [
+        JSON.stringify(data.Engineer_Details),
+        data.By_User_Id,
+        data.By_User_Name,
+        data.Status,
+        data.Status_Name,
+        data.To_User,
+        data.To_User_Name,
+        data.Enquiry_Source,
+        data.Enquiry_Source_Name,
+        data.Next_FollowUp_Date,
+        data.Status_FollowUp,
+        data.Remark,
+        data.Enquiry_For_Id,
+        data.Enquiry_For_Name
+      ],
+      callback
+    );
 
-},
+  },
 
 
   Lead_Import: function (data, callback) {
@@ -854,109 +854,111 @@ lead_.CRE_Name,
   // Get_Organization: function (callback) {
   //   return db.query("CALL Get_Organization()", callback);
   // },
-Save_customer_master: function (data, callback) {
+  Save_customer_master: function (data, callback) {
     // If an array is sent, use the first object
     const dataObj = Array.isArray(data) ? data[0] : data;
 
     // Prepare parameters for the stored procedure
     const params = [
-        dataObj.customer_master_id || 0,         // 0 for new record, >0 for update
-        dataObj.customer_master_name || '',
-        dataObj.address1 || '',
-        dataObj.phone_number || '',
-        dataObj.email || '',
-        dataObj.Whatsapp_Number || ''            // New field
+      dataObj.customer_master_id || 0,         // 0 for new record, >0 for update
+      dataObj.customer_master_name || '',
+      dataObj.address1 || '',
+      dataObj.phone_number || '',
+      dataObj.email || '',
+      dataObj.Whatsapp_Number || ''            // New field
     ];
 
     console.log("SP Parameters:", params);
 
     return db.query('CALL Save_Customer_Master(?, ?, ?, ?, ?, ?)', params, callback);
-},
+  },
 
 
-  Get_customer_master: function(callback) {
+  Get_customer_master: function (callback) {
     return db.query('CALL Get_customer_master()', callback);
   },
   Search_customer_master: function (data, callback) {
-  const name = data.customer_master_name || '';
-  const phone = data.phone_number || '';
+    const name = data.customer_master_name || '';
+    const phone = data.phone_number || '';
 
-  return db.query('CALL Search_Customer_Master(?, ?)', [name, phone], callback);
-},
-Delete_customer_master: function(customer_master_id, callback) {
-  return db.query('CALL Delete_Customer_Master(?)', [customer_master_id], callback);
-},
-Get_Engineer_Department: function (Engineer_Department_Name_, callback) {
+    return db.query('CALL Search_Customer_Master(?, ?)', [name, phone], callback);
+  },
+  Delete_customer_master: function (customer_master_id, callback) {
+    return db.query('CALL Delete_Customer_Master(?)', [customer_master_id], callback);
+  },
+  Get_Engineer_Department: function (Engineer_Department_Name_, callback) {
     if (
-        Engineer_Department_Name_ === undefined ||
-        Engineer_Department_Name_ === "undefined"
+      Engineer_Department_Name_ === undefined ||
+      Engineer_Department_Name_ === "undefined"
     ) {
-        Engineer_Department_Name_ = '';
+      Engineer_Department_Name_ = '';
     }
 
     return db.query(
-        "CALL Get_Engineer_Department(@Engineer_Department_Name_ :=?)",
-        [Engineer_Department_Name_],
-        callback
+      "CALL Get_Engineer_Department(@Engineer_Department_Name_ :=?)",
+      [Engineer_Department_Name_],
+      callback
     );
-},
+  },
 
 
-Get_engineer_details: function (
-  Search_,
-  District_Id_,
-  Department_Id_,
-  Association_Name_,
-  Page_Index1_,
-  Page_Index2_,
-  callback
-) {
-  Search_ = Search_ || '';
-  District_Id_ = District_Id_ || 0;
-  Department_Id_ = Department_Id_ || 0;
-  Association_Name_ = Association_Name_ || '';
-  Page_Index1_ = Page_Index1_ ?? 1;
-  Page_Index2_ = Page_Index2_ ?? 25;
-
-  return db.query(
-    "CALL Get_engineer_details(?, ?, ?, ?, ?, ?)",
-    [
-      Search_,
-      District_Id_,
-      Department_Id_,
-      Association_Name_,
-      Page_Index1_,
-      Page_Index2_
-    ],
+  Get_engineer_details: function (
+    Search_,
+    District_Id_,
+    Department_Id_,
+    Association_Name_,
+    Page_Index1_,
+    Page_Index2_,
+    User_Details_Id_,
     callback
-  );
-},
+  ) {
+    Search_ = Search_ || '';
+    District_Id_ = District_Id_ || 0;
+    Department_Id_ = Department_Id_ || 0;
+    Association_Name_ = Association_Name_ || '';
+    Page_Index1_ = Page_Index1_ ?? 1;
+    Page_Index2_ = Page_Index2_ ?? 25;
+
+    return db.query(
+      "CALL Get_engineer_details(?, ?, ?, ?, ?, ?, ?)",
+      [
+        Search_,
+        District_Id_,
+        Department_Id_,
+        Association_Name_,
+        Page_Index1_,
+        Page_Index2_,
+        User_Details_Id_
+      ],
+      callback
+    );
+  },
 
 
 
 
 
-  Search_engineers: function(filters, callback) {
-        const statusId = filters.Status_Id || null;
-        const fromDate = filters.From_Date || null;
-        const toDate = filters.To_Date || null;
-        const toStaffId = filters.To_Staff_Id || null; // <- corrected
-        const engineerNamePhone = filters.Engineer_Name_Phone || null;
-        const pageStart = filters.Page_Start || 1;
-        const pageEnd = filters.Page_End || 10;
+  Search_engineers: function (filters, callback) {
+    const statusId = filters.Status_Id || null;
+    const fromDate = filters.From_Date || null;
+    const toDate = filters.To_Date || null;
+    const toStaffId = filters.To_Staff_Id || null; // <- corrected
+    const engineerNamePhone = filters.Engineer_Name_Phone || null;
+    const pageStart = filters.Page_Start || 1;
+    const pageEnd = filters.Page_End || 10;
 
-        const sqlQuery = "CALL Search_Engineers(?, ?, ?, ?, ?, ?, ?)";
-        const params = [statusId, fromDate, toDate, toStaffId, engineerNamePhone, pageStart, pageEnd];
+    const sqlQuery = "CALL Search_Engineers(?, ?, ?, ?, ?, ?, ?)";
+    const params = [statusId, fromDate, toDate, toStaffId, engineerNamePhone, pageStart, pageEnd];
 
-        console.log("Executing SP with params:", params);
+    console.log("Executing SP with params:", params);
 
-        return db.query(sqlQuery, params, callback);
-    },
+    return db.query(sqlQuery, params, callback);
+  },
 
   //  Get_Association: function(callback) {
   //   return db.query('CALL Get_Association()', callback);
   // },
-Save_engineers: function (data, callback) {
+  Save_engineers: function (data, callback) {
     const sqlQuery = `
         CALL Save_engineers(
             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
@@ -965,44 +967,44 @@ Save_engineers: function (data, callback) {
 
     // Prepare parameters in the exact order as SP
     const parameters = [
-    data.Engineers_Id || 0,         // Engineers_Id
-    data.Engineer_Name,              // Engineer_Name
-    data.Phone_No,                   // Phone_No
-    data.Organization_Name,          // Organization_Name
-    data.District_Id,                // District_Id
-    data.District_Name, 
-     data.City_Id,          // ✅ NEW
-    data.City_Name,               // District_Name
-    data.Association_Name,           // Association_Name
-    data.WhatsApp_Number || null,    // WhatsApp_Number
-    data.Email || null,              // Email
-    data.Department_Id || null,      // Department_Id
-    data.Department_Name || null,    // Department_Name
-    data.User_Id                     // User_Id
-];
+      data.Engineers_Id || 0,         // Engineers_Id
+      data.Engineer_Name,              // Engineer_Name
+      data.Phone_No,                   // Phone_No
+      data.Organization_Name,          // Organization_Name
+      data.District_Id,                // District_Id
+      data.District_Name,
+      data.City_Id,          // ✅ NEW
+      data.City_Name,               // District_Name
+      data.Association_Name,           // Association_Name
+      data.WhatsApp_Number || null,    // WhatsApp_Number
+      data.Email || null,              // Email
+      data.Department_Id || null,      // Department_Id
+      data.Department_Name || null,    // Department_Name
+      data.User_Id                     // User_Id
+    ];
 
     console.log("Executing Save_engineers SP with parameters:", parameters);
 
     return db.query(sqlQuery, parameters, (err, rows) => {
-        if (err) {
-            console.error("DB Error in Save_engineers:", err);
-            return callback(err, null);
-        }
+      if (err) {
+        console.error("DB Error in Save_engineers:", err);
+        return callback(err, null);
+      }
 
-        console.log("DB Result from Save_engineers:", rows);
-        callback(null, rows);
+      console.log("DB Result from Save_engineers:", rows);
+      callback(null, rows);
     });
-},
+  },
 
 
 
-Delete_engineers: function(engineers_Id_, callback) {
-  return db.query(
-    "CALL Delete_engineers(@engineers_Id_ := ?)", 
-    [engineers_Id_], 
-    callback
-  );
-},
+  Delete_engineers: function (engineers_Id_, callback) {
+    return db.query(
+      "CALL Delete_engineers(@engineers_Id_ := ?)",
+      [engineers_Id_],
+      callback
+    );
+  },
 
   //SQL Call for stage.
 
@@ -1070,28 +1072,28 @@ Delete_engineers: function(engineers_Id_, callback) {
   Get_CustomFields_On_EnquirySource: function (enquiry_source_id, lead_id_, callback) {
     console.log('lead_id_: ', lead_id_);
     console.log('status_id_: ', enquiry_source_id);
-if (!enquiry_source_id) enquiry_source_id = 0;
-  if (lead_id_ === undefined || lead_id_ === "undefined") lead_id_ = 0;
+    if (!enquiry_source_id) enquiry_source_id = 0;
+    if (lead_id_ === undefined || lead_id_ === "undefined") lead_id_ = 0;
 
-  return db.query(
-    "CALL Get_CustomFields_On_EnquirySource(@_enquiry_source_id := ?, @_lead_id := ?)",
-    [enquiry_source_id, lead_id_],
-    callback
-  );
-},
-Get_CustomFields_On_EnquiryFor: function (enquiry_for_id, lead_id_, callback) {
-  console.log("lead_id_: ", lead_id_);
-  console.log("enquiry_for_id_: ", enquiry_for_id);
+    return db.query(
+      "CALL Get_CustomFields_On_EnquirySource(@_enquiry_source_id := ?, @_lead_id := ?)",
+      [enquiry_source_id, lead_id_],
+      callback
+    );
+  },
+  Get_CustomFields_On_EnquiryFor: function (enquiry_for_id, lead_id_, callback) {
+    console.log("lead_id_: ", lead_id_);
+    console.log("enquiry_for_id_: ", enquiry_for_id);
 
-  if (!enquiry_for_id) enquiry_for_id = 0;
-  if (lead_id_ === undefined || lead_id_ === "undefined") lead_id_ = 0;
+    if (!enquiry_for_id) enquiry_for_id = 0;
+    if (lead_id_ === undefined || lead_id_ === "undefined") lead_id_ = 0;
 
-  return db.query(
-    "CALL Get_CustomFields_On_EnquiryFor(@_enquiry_for_id := ?, @_lead_id := ?)",
-    [enquiry_for_id, lead_id_],
-    callback
-  );
-},
+    return db.query(
+      "CALL Get_CustomFields_On_EnquiryFor(@_enquiry_for_id := ?, @_lead_id := ?)",
+      [enquiry_for_id, lead_id_],
+      callback
+    );
+  },
 
 };
 
