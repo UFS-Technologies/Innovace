@@ -902,37 +902,46 @@ var lead = {
   },
 
 
-  Get_engineer_details: function (
-    Search_,
-    District_Id_,
-    Department_Id_,
-    Association_Name_,
-    Page_Index1_,
-    Page_Index2_,
-    User_Details_Id_,
-    callback
-  ) {
-    Search_ = Search_ || '';
-    District_Id_ = District_Id_ || 0;
-    Department_Id_ = Department_Id_ || 0;
-    Association_Name_ = Association_Name_ || '';
-    Page_Index1_ = Page_Index1_ ?? 1;
-    Page_Index2_ = Page_Index2_ ?? 25;
+Get_engineer_details: function (
+  Search_,
+  District_Id_,
+  Department_Id_,
+  Association_Name_,
+  Page_Index1_,
+  Page_Index2_,
+  User_Details_Id_,
+  callback
+) {
+  // ✅ Force correct types
+  Search_ = typeof Search_ === 'string' ? Search_ : '';
+  District_Id_ = Number(District_Id_) || 0;
+  Department_Id_ = Number(Department_Id_) || 0;
 
-    return db.query(
-      "CALL Get_engineer_details(?, ?, ?, ?, ?, ?, ?)",
-      [
-        Search_,
-        District_Id_,
-        Department_Id_,
-        Association_Name_,
-        Page_Index1_,
-        Page_Index2_,
-        User_Details_Id_
-      ],
-      callback
-    );
-  },
+  // 🔥 IMPORTANT FIX: prevent object from dropdown
+  Association_Name_ =
+    typeof Association_Name_ === 'string'
+      ? Association_Name_
+      : '';
+
+  Page_Index1_ = Number(Page_Index1_) || 1;
+  Page_Index2_ = Number(Page_Index2_) || 25;
+  User_Details_Id_ = Number(User_Details_Id_) || 0;
+
+  return db.query(
+    "CALL Get_engineer_details(?, ?, ?, ?, ?, ?, ?)",
+    [
+      Search_,
+      District_Id_,
+      Department_Id_,
+      Association_Name_,
+      Page_Index1_,
+      Page_Index2_,
+      User_Details_Id_
+    ],
+    callback
+  );
+},
+
 
 
 
@@ -961,7 +970,7 @@ var lead = {
   Save_engineers: function (data, callback) {
     const sqlQuery = `
         CALL Save_engineers(
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         )
     `;
 
@@ -975,6 +984,7 @@ var lead = {
       data.District_Name,
       data.City_Id,          // ✅ NEW
       data.City_Name,               // District_Name
+       data.Association_Id || 0, 
       data.Association_Name,           // Association_Name
       data.WhatsApp_Number || null,    // WhatsApp_Number
       data.Email || null,              // Email
@@ -1094,6 +1104,26 @@ var lead = {
       callback
     );
   },
+     Save_association: function (association_id, association_name, callback) {
+        return db.query(
+            "CALL Save_association(@association_id :=?, @association_name :=?)",
+            [association_id, association_name],
+            callback
+        );
+    },
+     Delete_association: function (association_id, callback) {
+        return db.query(
+            "CALL Delete_association(@association_id :=?)",
+            [association_id],
+            callback
+        );
+    },
+     Get_association_dropdown: function (callback) {
+        return db.query(
+            "CALL Get_association_dropdown()",
+            callback
+        );
+    },
 
 };
 

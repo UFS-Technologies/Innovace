@@ -298,7 +298,8 @@ router.get('/Get_engineer_details', (req, res) => {
     Department_Id,
     Association_Name,
     Page_Index1,
-    Page_Index2
+    Page_Index2,
+    User_Details_Id // extra param
   } = req.query;
 
   lead.Get_engineer_details(
@@ -308,6 +309,7 @@ router.get('/Get_engineer_details', (req, res) => {
     Association_Name || '',
     parseInt(Page_Index1) || 1,
     parseInt(Page_Index2) || 25,
+    parseInt(User_Details_Id) || 0, // extra param
     (err, rows) => {
       if (err) {
         console.error('Error fetching engineer details:', err);
@@ -317,11 +319,13 @@ router.get('/Get_engineer_details', (req, res) => {
         });
       }
 
-      // SP returns multiple result sets (data + count)
+      // Keep response exactly like your original
       res.json(rows && rows.length > 0 ? rows[0] : []);
     }
   );
 });
+
+
 
 
 
@@ -1125,6 +1129,71 @@ router.get("/Get_CustomFields_On_EnquiryFor", function (req, res, next) {
     console.log("e: ", e);
     res.status(500).json({ message: "Unhandled error", error: e.toString() });
   }
+});
+router.post('/Save_association', function (req, res) {
+    try {
+        const { association_id, association_name } = req.body;
+
+        lead.Save_association(
+            association_id,
+            association_name,
+            function (err, result) {
+                if (err) {
+                    res.status(500).json({
+                        success: false,
+                        message: 'Failed to save association',
+                        error: err
+                    });
+                } else {
+                    res.json({
+                        success: true,
+                        message: 'Association saved successfully',
+                        data: result
+                    });
+                }
+            }
+        );
+    } catch (e) {
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: e.message
+        });
+    }
+});
+router.delete('/Delete_association/:id', function (req, res) {
+    const association_id = req.params.id; // get ID from URL
+
+    lead.Delete_association(association_id, function (err, result) {
+        if (err) {
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to delete association',
+                error: err
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Association deleted successfully'
+        });
+    });
+});
+router.get('/Get_association_dropdown', function (req, res) {
+    lead.Get_association_dropdown(function (err, result) {
+        if (err) {
+            res.status(500).json({
+                success: false,
+                message: 'Failed to load association dropdown',
+                error: err
+            });
+        } else {
+            res.json({
+                success: true,
+                data: result[0]
+            });
+        }
+    });
 });
 
 
