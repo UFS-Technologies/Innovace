@@ -606,6 +606,166 @@ finally
 {
 }
  });
+router.get('/Get_All_category', function(req, res, next) {
+    try {
+        itemModel.getAllCategory(function(err, result) {
+            if (err) {
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to fetch items',
+                    error: err
+                });
+            } else {
+                res.json({
+                    success: true,
+                    message: 'Items fetched successfully',
+                    data: result[0] // MySQL2 returns result set in first element
+                });
+            }
+        });
+    } catch (e) {
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: e.message
+        });
+    }
+});
+
+router.post('/save_Category', function (req, res, next) {
+    try{
+        const categoryData = {
+            Category_Id: req.body.Category_Id || 0,
+            Category_Name: req.body.Category_Name
+        };
+        itemModel.Save_Category(categoryData, function (err, result) {
+            if (err) {
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to save category',
+                    error: err
+                });
+            } else {
+                res.json({
+                    success: true,
+                    message: 'Category saved successfully',
+                    data: result
+                });
+            }
+        });
+
+    }catch(err){
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: err.message
+        });
+
+    }
+ });
+
+ router.delete('/Delete_Category/:Category_Id_?',function(req,res,next){
+    try{
+        const category_id = req.params.Category_Id_;
+        
+        itemModel.Delete_Category(category_id, function(err, result){
+            if (err){
+                res.json(err);
+                }
+            else 
+                {
+                  res.json(result[0][0]);
+                }
+    
+        });
+
+    }catch(err){
+        
+    }
+    finally{
+
+    }
+ });
+  router.post('/Save_Unit', function (req, res, next) {
+    try{
+        const unitData = {
+            Unit_Id: req.body.Unit_Id || 0,
+            Unit_Name: req.body.Unit_Name
+        };
+        itemModel.Save_Unit(unitData, function (err, result) {
+            if (err) {
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to save unit',
+                    error: err
+                });
+            } else {
+                res.json({
+                    success: true,
+                    message: 'unit saved successfully',
+                    data: result
+                });
+            }
+        });
+
+    }catch(err){
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: err.message
+        });
+
+    }
+ });
+
+ router.delete('/Delete_Unit/:Unit_Id_?',function(req,res,next){
+    try{
+        const Unit_Id = req.params.Unit_Id_;
+        
+        itemModel.Delete_Unit(Unit_Id, function(err, result){
+            if (err){
+                res.json(err);
+                }
+            else 
+                {
+                  res.json(result[0][0]);
+                }
+    
+        });
+
+    }catch(err){
+        
+    }
+    finally{
+
+    }
+ });
+ router.get('/Get_All_unit', function(req, res, next) {
+    try {
+        itemModel.getAllunit(function(err, result) {
+            if (err) {
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to fetch items',
+                    error: err
+                });
+            } else {
+                res.json({
+                    success: true,
+                    message: 'Items fetched successfully',
+                    data: result[0] // MySQL2 returns result set in first element
+                });
+            }
+        });
+    } catch (e) {
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: e.message
+        });
+    }
+});
+
 
 
 

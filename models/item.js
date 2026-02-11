@@ -325,6 +325,48 @@ Delete_Expense_Type:function(Expense_Type_Id_,callback)
 return db.query("CALL Delete_Expense_Type(@Expense_Type_Id_ :=?)",[Expense_Type_Id_],callback);
 }
 ,
+Save_Category: function (categoryData, callback) {
+    const { Category_Id, Category_Name } = categoryData;
+
+    return db.query(
+        "CALL Save_Category(?, ?)",
+        [Category_Id, Category_Name],
+        callback
+    );
+},
+   getAllCategory: function(callback) {
+        return db.query(
+            "CALL Get_All_category()",
+            [],
+            callback
+        );
+    },
+    Delete_Category:function(Category_Id_,callback)
+    { 
+    return db.query("CALL Delete_Category(@Category_Id_ :=?)",[Category_Id_],callback);
+    },
+    Save_Unit: function (unitData, callback) {
+    const { Unit_Id, Unit_Name } = unitData;
+
+    return db.query(
+        "CALL Save_Unit(?, ?)",
+        [Unit_Id, Unit_Name],
+        callback
+    );
+},
+getAllunit: function(callback) {
+    return db.query(
+        "CALL Get_All_unit()",
+        [],
+        callback
+    );
+},
+Delete_Unit:function(Unit_Id_,callback)
+    { 
+    return db.query("CALL Delete_Unit(@Unit_Id_ :=?)",[Unit_Id_],callback);
+    },
+    
+
 
 
 
