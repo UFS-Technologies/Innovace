@@ -2,18 +2,10 @@
  var fs = require('fs');
  var quotation_master=
  { 
- Save_quotation_master: function (quotation_master_, callback) {
+Save_quotation_master: function (quotation_master_, callback) {
 
   return db.query(
-    "CALL Save_quotation_master(" +
-    "@Quotation_Master_Id_ :=?, @Customer_Id_ :=?, @PaymentTerms_ :=?, @Payment_Term_Description_ :=?, " +
-    "@TotalAmount_ :=?, @Subsidy_Amount_ :=?, @NetTotal_ :=?, @Product_Name_ :=?, @Warranty_ :=?, " +
-    "@Terms_And_Conditions_ :=?, @Quotation_Status_Id_ :=?, @Quotation_Status_Name_ :=?, @Created_By_ :=?, " +
-    "@Description_ :=?, @items_ :=?, @bill_of_materials_ :=?, @production_chart_ :=?, " +
-    "@advance_percentage_ :=?, @onmaterialdelivery_percentage_ :=?, @onWork_completetion_percentage_ :=?, " +
-    "@System_Price_Excluding_KSEB_Paperwork_ :=?, @KSEB_Registration_Fees_KW_ :=?, " +
-    "@KSEB_Feasibility_Study_Fees_ :=?, @Additional_Structure_Work_ :=?, " +
-    "@TaxableAmount_ :=?, @TotalGSTAmount_ :=?, @TotalGSTPercent_ :=?, @TotalAdCESS_ :=?)",
+    "CALL Save_quotation_master(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
     [
       quotation_master_.Quotation_Master_Id,
       quotation_master_.Customer_Id,
@@ -37,21 +29,34 @@
       quotation_master_.advance_percentage,
       quotation_master_.onmaterialdelivery_percentage,
       quotation_master_.onWork_completetion_percentage,
+      quotation_master_.advance_amount,
+      quotation_master_.advance_remark,
+      quotation_master_.onmaterialdelivery_amount,
+      quotation_master_.onmaterialdelivery_remark,
+      quotation_master_.onWork_completetion_amount,
+      quotation_master_.onWork_completetion_remark,
 
       quotation_master_.System_Price_Excluding_KSEB_Paperwork,
       quotation_master_.KSEB_Registration_Fees_KW,
       quotation_master_.KSEB_Feasibility_Study_Fees,
       quotation_master_.Additional_Structure_Work,
-
-      // ✅ NEW FIELDS
       quotation_master_.TaxableAmount,
       quotation_master_.TotalGSTAmount,
       quotation_master_.TotalGSTPercent,
-      quotation_master_.TotalAdCESS
+      quotation_master_.TotalAdCESS,
+
+      quotation_master_.ReferenceNo,
+      quotation_master_.ValidUpto,
+      quotation_master_.WorkPlace,
+      quotation_master_.KindAttn,
+      quotation_master_.Subject
     ],
     callback
   );
 }
+
+
+
 
  ,
  Delete_quotation_master:function(quotation_master_Id_,callback)
