@@ -81,7 +81,18 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
   const quotNo    = safeStr(D.Quotation_No);
   const entryDt   = formatDate(D.EntryDate);
   const refNo     = safeStr(D.ReferenceNo);
-  const validUpto = safeStr(D.ValidUpto);
+
+  // ── FIX 1: ValidUpto — format as DD-MM-YYYY ──────────────────────────────
+  const formatDateDDMMYYYY = (val) => {
+    if (!val) return '';
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return safeStr(val); // fallback if already a string
+    const dd   = String(d.getDate()).padStart(2, '0');
+    const mm   = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+  };
+  const validUpto = formatDateDDMMYYYY(D.ValidUpto);
 
   const clientName   = safeStr(customerDetails.Customer_Name  || '');
   const clientAddr   = safeStr(customerDetails.address        || '');
@@ -156,11 +167,9 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
   doc.setFontSize(13);
   doc.text('QUOTATION', pageWidth / 2, 20, { align: 'center' });
   const qtW1 = doc.getTextWidth('QUOTATION');
-  // Underline directly under QUOTATION text — solid black
   doc.setLineWidth(0.5);
   doc.setDrawColor(0, 0, 0);
   doc.line(pageWidth / 2 - qtW1 / 2, 21.5, pageWidth / 2 + qtW1 / 2, 21.5);
-  // Full-width horizontal separator — dark hash/grey
   doc.setLineWidth(0.6);
   doc.setDrawColor(222, 220, 215);
   doc.line(P1_LEFT, 25, P1_RIGHT, 25);
@@ -219,6 +228,7 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
   const PI_Y      = Math.max(toY + 3, infoBoxBottom);
   const PI_LINE_H = 6.5;
 
+  // ── FIX 2: Project info rows — label bold, value normal ──────────────────
   const piRows = [
     { label: 'PROJECT NAME', value: projName  },
     { label: 'WORK PLACE',   value: workPlace },
@@ -228,16 +238,22 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
 
   piRows.forEach((row, i) => {
     const y = PI_Y + i * PI_LINE_H;
+
+    // Label — bold
     doc.setFont(undefined, 'bold');
     doc.setFontSize(8.5);
     doc.text(row.label, P1_LEFT, y);
     const labelW = doc.getTextWidth(row.label);
+
+    // Colon — normal
     doc.setFont(undefined, 'normal');
     doc.setFontSize(8.5);
     const colon = ' : ';
     doc.text(colon, P1_LEFT + labelW, y);
     const colonW = doc.getTextWidth(colon);
-    doc.setFont(undefined, 'bold');
+
+    // Value — bold for PROJECT NAME, normal for the rest
+    doc.setFont(undefined, row.label === 'PROJECT NAME' ? 'bold' : 'normal');
     doc.setFontSize(8.5);
     doc.text(doc.splitTextToSize(row.value, 130)[0] || '', P1_LEFT + labelW + colonW, y);
   });
@@ -277,12 +293,13 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
   const TBL_W        = TBL_RIGHT - TBL_LEFT;
   const TBL_HEADER_H = 8;
 
+  // ── FIX 3: Wider Description, narrower Qty & Units ───────────────────────
   const COL_SR    = 12;
-  const COL_QTY   = 14;
-  const COL_UNIT  = 16;
-  const COL_RATE  = 28;
-  const COL_TOTAL = 28;
-  const COL_DESC  = TBL_W - COL_SR - COL_QTY - COL_UNIT - COL_RATE - COL_TOTAL;
+  const COL_QTY   = 8;   // reduced from 14
+  const COL_UNIT  = 12;   // reduced from 16
+  const COL_RATE  = 23;
+  const COL_TOTAL = 24;
+  const COL_DESC  = TBL_W - COL_SR - COL_QTY - COL_UNIT - COL_RATE - COL_TOTAL; // now larger
 
   const X_SR    = TBL_LEFT;
   const X_DESC  = X_SR   + COL_SR;
@@ -451,12 +468,9 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
     doc.setTextColor(0, 0, 0);
   }
 
-  // ── FIX 1: Header — NO vertical dividers, NO outer border ────────────────
   function drawCSHeader(y) {
     doc.setFillColor(30, 30, 30);
     doc.rect(CS_LEFT, y, CS_TABLE_W, CS_HEADER_H, 'F');
-
-    // Vertical dividers and outer border REMOVED — clean header matching screenshot
 
     doc.setTextColor(255, 255, 255);
     doc.setFont(undefined, 'bold');
@@ -470,13 +484,9 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
     return y + CS_HEADER_H;
   }
 
-  // ── FIX 2: Data rows — grey fill only, NO border lines ───────────────────
-  // White gap between rows is achieved by the fill not covering the gap space
   function drawCSRow(y, srLabel, label, amountStr) {
     doc.setFillColor(230, 230, 230);
     doc.rect(CS_LEFT, y, CS_TABLE_W, CS_ROW_H, 'F');
-
-    // Border lines REMOVED — rows appear as separate grey blocks with white space between them
 
     const midY = y + CS_ROW_H / 2 + 1.5;
 
@@ -589,13 +599,11 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
     const PT_PAY_W   = 80;
     const PT_AMT_W   = 35;
 
-    // Calculate total height of payment terms section for outer border box
-    const PT_TOTAL_ROWS = 4; // 1 header + 3 data rows
-    const PT_LABEL_H    = 6; // "Payment Terms" label above box
+    const PT_TOTAL_ROWS = 4;
+    const PT_LABEL_H    = 6;
     const PT_BOX_H      = PT_ROW_H * PT_TOTAL_ROWS;
-    const PT_PADDING    = 4; // inner padding inside the box
+    const PT_PADDING    = 4;
 
-    // Outer border box around entire payment terms (label + table)
     doc.setDrawColor(242, 241, 237);
     doc.setLineWidth(0.5);
     doc.rect(CS_LEFT - 5, startY - PT_LABEL_H - 2, CS_TABLE_W + 10, PT_LABEL_H + PT_BOX_H + PT_PADDING + 4);
@@ -675,8 +683,6 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
 
   let csY = drawCSHeader(CS_START_Y);
 
-  // NO gap after header — first row starts immediately after header
-
   costSummaryRows.forEach((row, i) => {
     if (csY + CS_ROW_H > CS_BOTTOM_LIMIT) {
       drawPage2Chrome();
@@ -685,7 +691,6 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
       csY = drawCSHeader(CS_START_Y);
     }
     drawCSRow(csY, String(i + 1), row.label, fmt(row.amount));
-    // 2mm white space gap between content rows only
     csY += CS_ROW_H + 0.3;
   });
 
