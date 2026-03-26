@@ -1124,6 +1124,9 @@ Get_engineer_details: function (
             callback
         );
     },
+    Get_All_Engineer_Department: function (callback) {
+    return db.query("CALL Get_All_Engineer_Department()", callback);
+}
 
 };
 

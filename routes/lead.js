@@ -1196,6 +1196,19 @@ router.get('/Get_association_dropdown', function (req, res) {
     });
 });
 
+router.get('/get_all_engineer_department', function (req, res) {
+  try {
+    lead.Get_All_Engineer_Department(function (err, rows) {
+      if (err) {
+        return res.status(500).json(err);
+      }
+      res.json(rows[0]);
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 
 
 module.exports = router;
