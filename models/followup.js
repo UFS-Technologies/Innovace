@@ -75,7 +75,14 @@ return db.query("CALL Search_followup(@followup_Name_ :=?)",[followup_Name_],cal
      Pending_FollowUp: function (By_User_, callback) {
 
         return db.query("CALL Pending_FollowUp(@By_User_ :=?)", [By_User_], callback);
-    }
+    },
+    Get_Engineer_Followup_History: function (Engineers_Id_, callback) {
+  return db.query(
+    "CALL Get_Engineer_Followup_History(?)",
+    [Engineers_Id_],
+    callback
+  );
+},
   };
   module.exports=followup;
 

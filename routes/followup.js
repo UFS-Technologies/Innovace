@@ -28,9 +28,9 @@ router.post('/Save_engineer_followup', (req, res) => {
     console.log("Request body:", data);
 
     followup.Save_engineer_followup(
-        data.followup,          // ✅ Correct key
+        data.FollowUp,          // ✅ Correct key
         data.Engineers_Id,      // ✅ Correct
-        data.customFields,      // ✅ Correct key
+        data.Custom_Fields,      // ✅ Correct key
         (err, rows) => {
             if (err) {
                 console.error("DB Error:", err);
@@ -171,6 +171,21 @@ router.get('/Pending_FollowUp/', function (req, res, next) {
   finally {
   }
 });
-
+router.get("/get_engineer_followup_history", function (req, res) {
+  try {
+    followup.Get_Engineer_Followup_History(
+      req.query.Engineers_Id,
+      function (err, result) {
+        if (err) {
+          res.json(err);
+        } else {
+          res.json(result[0]);
+        }
+      }
+    );
+  } catch (e) {
+    res.json(e);
+  }
+});
   module.exports = router;
 
