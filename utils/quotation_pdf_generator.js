@@ -78,15 +78,22 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
 
   const D = quotationData;
 
-  const quotNo    = safeStr(D.Quotation_No);
-  const entryDt   = formatDate(D.EntryDate);
-  const refNo     = safeStr(D.ReferenceNo);
+  const rawQuotNo = safeStr(D.Quotation_No);
+  let dynamicPart = '';
+  if (rawQuotNo.includes('/')) {
+    const parts = rawQuotNo.split('/');
+    dynamicPart = parts[2] || '';
+  } else {
+    dynamicPart = rawQuotNo;
+  }
+  const quotNo = `IE/FR/${dynamicPart}/26`;
 
-  // ── FIX 1: ValidUpto — format as DD-MM-YYYY ──────────────────────────────
+  const entryDt = formatDate(D.EntryDate);
+
   const formatDateDDMMYYYY = (val) => {
     if (!val) return '';
     const d = new Date(val);
-    if (isNaN(d.getTime())) return safeStr(val); // fallback if already a string
+    if (isNaN(d.getTime())) return safeStr(val);
     const dd   = String(d.getDate()).padStart(2, '0');
     const mm   = String(d.getMonth() + 1).padStart(2, '0');
     const yyyy = d.getFullYear();
@@ -100,16 +107,39 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
   const clientPhone  = safeStr(customerDetails.Contact_Number || '');
 
   const projName  = safeStr(D.Product_Name || '');
-  const workPlace = safeStr(D.WorkPlace    || '');
+  const location  = safeStr(D.WorkPlace    || '');
+
+const category = safeStr(D.Category || '');
   const kindAttn  = safeStr(D.KindAttn     || '');
   const subject   = safeStr(D.Subject      || '');
 
+  // Dynamic description from custom field 135
+  let dynamicDescription = '';
+  if (Array.isArray(D.custom_fields)) {
+    const cf135 = D.custom_fields.find(f => f.id === 135 || f.id === '135');
+    dynamicDescription = safeStr(cf135?.value || '');
+  } else {
+    dynamicDescription = safeStr(D.custom_field_135 || D.description_135 || '');
+  }
+
+  // ── Terms & Conditions from D.Terms_And_Conditions ────────────────────────
+  const rawTerms = safeStr(D.Terms_And_Conditions || '');
+  // Split by newline or semicolon, filter empty lines
+  const termsLines = rawTerms
+    .split(/\n|;/)
+    .map(l => l.trim())
+    .filter(Boolean);
+
   const taxable     = parseFloat(D.TaxableAmount)   || 0;
-  const totalAmt    = parseFloat(D.TotalAmount)     || 0;
-  const gstAmt      = parseFloat(D.TotalGSTAmount)  || 0;
-  const netTotal    = parseFloat(D.NetTotal)        || 0;
+  const totalAmt    = parseFloat(D.TotalAmount)      || 0;
+  const gstAmt      = parseFloat(D.TotalGSTAmount)   || 0;
+  const netTotal    = parseFloat(D.NetTotal)         || 0;
   const discountAmt = Math.max(0, totalAmt - taxable - gstAmt);
-  const preparedBy  = safeStr(D.Created_By_Name     || '');
+  const preparedBy  = safeStr(D.Created_By_Name      || '');
+
+  // Read GST % — use TotalGSTPercent from master, fallback to item level
+  const gstPercent = parseFloat(D.TotalGSTPercent || D.GSTPercent || D.gst_percentage || 0);
+  const showGstCol = gstPercent > 0;
 
   let rawDetails = D.quotation_details;
   if (typeof rawDetails === 'string') {
@@ -127,14 +157,22 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
     const catName = items[0].CategoryName || `Category ${catId}`;
     tableRows.push({ type: 'group', sr: String(catCounter), label: catName });
     items.forEach((item, itemIndex) => {
+      const unitPrice  = parseFloat(item.UnitPrice)  || 0;
+      const qty        = parseFloat(item.Quantity)   || 0;
+      // Use item-level GSTPercent for per-row GST calculation
+      const itemGstPct = parseFloat(item.GSTPercent || D.TotalGSTPercent || 0);
+      const subtotal   = unitPrice * qty;
+      const itemGst    = showGstCol ? (subtotal * itemGstPct / 100) : 0;
       tableRows.push({
         type:     'item',
         sr:       `${catCounter}.${itemIndex + 1}`,
         desc:     safeStr(item.ItemName),
         qty:      safeStr(item.Quantity),
         units:    safeStr(item.Unit || ''),
-        unitRate: item.UnitPrice || 0,
-        total:    (parseFloat(item.UnitPrice) || 0) * (parseFloat(item.Quantity) || 0),
+        unitRate: unitPrice,
+        gstPct:   itemGstPct,
+        gstAmt:   itemGst,
+        total:    subtotal,
       });
     });
   });
@@ -142,7 +180,9 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
   const costSummaryRows = [];
   grouped.forEach((items, catId) => {
     const catName  = items[0].CategoryName || `Category ${catId}`;
-    const catTotal = items.reduce((s, it) => s + (parseFloat(it.UnitPrice) || 0) * (parseFloat(it.Quantity) || 0), 0);
+    const catTotal = items.reduce(
+      (s, it) => s + (parseFloat(it.UnitPrice) || 0) * (parseFloat(it.Quantity) || 0), 0
+    );
     costSummaryRows.push({ label: catName, amount: catTotal });
   });
 
@@ -193,20 +233,14 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
     doc.setFont(undefined, 'bold');
     doc.setFontSize(8.5);
     const addrLines = doc.splitTextToSize(clientAddr, TO_ADDR_W);
-    addrLines.forEach((line) => {
-      doc.text(line, P1_LEFT, toY);
-      toY += TO_LINE_H;
-    });
+    addrLines.forEach((line) => { doc.text(line, P1_LEFT, toY); toY += TO_LINE_H; });
   }
 
   if (clientAddr3.trim()) {
     doc.setFont(undefined, 'bold');
     doc.setFontSize(8.5);
     const addr3Lines = doc.splitTextToSize(clientAddr3, TO_ADDR_W);
-    addr3Lines.forEach((line) => {
-      doc.text(line, P1_LEFT, toY);
-      toY += TO_LINE_H;
-    });
+    addr3Lines.forEach((line) => { doc.text(line, P1_LEFT, toY); toY += TO_LINE_H; });
   }
 
   if (clientPhone.trim()) {
@@ -219,121 +253,147 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
   const IB_RIGHT = P1_RIGHT;
   doc.setFont(undefined, 'bold');
   doc.setFontSize(9);
-  doc.text('QUOTATION NO :' + quotNo,    IB_RIGHT, 36, { align: 'right' });
-  doc.text('DATE :'         + entryDt,   IB_RIGHT, 42, { align: 'right' });
-  doc.text('REFERENCE NO :' + refNo,     IB_RIGHT, 48, { align: 'right' });
-  doc.text('VALID UPTO :'   + validUpto, IB_RIGHT, 54, { align: 'right' });
+  doc.text('QTN NO : '      + quotNo,    IB_RIGHT, 36, { align: 'right' });
+  doc.text('DATE : '        + entryDt,   IB_RIGHT, 42, { align: 'right' });
+  doc.text('VALID UPTO : '  + validUpto, IB_RIGHT, 48, { align: 'right' });
 
-  const infoBoxBottom = 58;
+  const infoBoxBottom = 52;
   const PI_Y      = Math.max(toY + 3, infoBoxBottom);
   const PI_LINE_H = 6.5;
 
-  // ── FIX 2: Project info rows — label bold, value normal ──────────────────
   const piRows = [
-    { label: 'PROJECT NAME', value: projName  },
-    { label: 'WORK PLACE',   value: workPlace },
-    { label: 'KIND ATTN',    value: kindAttn  },
-    { label: 'SUBJECT',      value: subject   },
+    { label: 'PROJECT NAME', value: projName },
+    { label: 'LOCATION',     value: location },
+    { label: 'CATEGORY',     value: category },
+    { label: 'KIND ATTN',    value: kindAttn },
+    { label: 'SUBJECT',      value: subject  },
   ];
 
   piRows.forEach((row, i) => {
     const y = PI_Y + i * PI_LINE_H;
-
-    // Label — bold
     doc.setFont(undefined, 'bold');
     doc.setFontSize(8.5);
     doc.text(row.label, P1_LEFT, y);
     const labelW = doc.getTextWidth(row.label);
-
-    // Colon — normal
     doc.setFont(undefined, 'normal');
     doc.setFontSize(8.5);
     const colon = ' : ';
     doc.text(colon, P1_LEFT + labelW, y);
     const colonW = doc.getTextWidth(colon);
-
-    // Value — bold for PROJECT NAME, normal for the rest
     doc.setFont(undefined, row.label === 'PROJECT NAME' ? 'bold' : 'normal');
     doc.setFontSize(8.5);
     doc.text(doc.splitTextToSize(row.value, 130)[0] || '', P1_LEFT + labelW + colonW, y);
   });
 
-  const introY = PI_Y + piRows.length * PI_LINE_H + 5;
-  const introText =
-    'Sir, With reference to the above, we are pleased to furnish herewith our lowest quotation for Supply, ' +
-    'Installation, Testing and Commissioning of fire protection system for your building. We trust, this quote ' +
-    'meets your requirement and to your satisfaction & approval. Look forward for your business. If you require any ' +
-    'further information, we shall be pleased to provide the same (Mob: 9747608932,';
+  // ── Parse Description field (paragraph + bold points) ─────────────────────
+const rawDescription = safeStr(D.Description || '');
+
+// Split into lines, classify each
+const descBlocks = rawDescription
+  .split(/\n/)
+  .map(l => l.trim())
+  .filter(Boolean)
+  .map(line => {
+    // Detect numbered point: starts with digit+dot or digit+) or bullet (-, •, *)
+    const isPoint = /^(\d+[\.\)]\s+|[-•*]\s+)/.test(line);
+    // Strip existing numbering/bullet prefix — we'll re-number
+    const clean = line.replace(/^(\d+[\.\)]\s+|[-•*]\s+)/, '').trim();
+    return { isPoint, text: clean };
+  });
+
+// Separate paragraphs from points
+const paragraphs = descBlocks.filter(b => !b.isPoint);
+const points     = descBlocks.filter(b =>  b.isPoint);
+
+const introY   = PI_Y + piRows.length * PI_LINE_H + 5;
+const INTRO_LH = 4.2;
+let   curY     = introY;
+
+// Render paragraph lines — normal weight, wrapped
+if (paragraphs.length) {
   doc.setFont(undefined, 'normal');
-  doc.setFontSize(7.5);
+  doc.setFontSize(8);
   doc.setTextColor(0, 0, 0);
-  const introLines = doc.splitTextToSize(introText, P1_W);
-  const INTRO_LH = 3.8;
-  introLines.forEach((line, i) => {
-    doc.text(line, P1_LEFT, introY + i * INTRO_LH);
+  paragraphs.forEach(block => {
+    const lines = doc.splitTextToSize(block.text, P1_W);
+    lines.forEach(l => { doc.text(l, P1_LEFT, curY); curY += INTRO_LH; });
   });
+  curY += 2; // small gap before points
+}
 
-  const scopeStartY = introY + introLines.length * INTRO_LH + 3;
-  const scopeItems  = [
-    'Fire protection system supply and installation using GI"Class B" Pipes & High quality Fittings. 55555555',
-    'Fire protection system supply and installation using GI"Class B" Pipes & High quality Fittings. 655555',
-    'Fire protection system supply and installation using GI"Class B" Pipes & High quality Fittings. 555555',
-    'Fire protection system supply and installation using GI"Class B" Pipes & High quality Fittings. 55555',
-  ];
-  const SCOPE_LH = 4.0;
-  doc.setFont(undefined, 'bold');
-  doc.setFontSize(7.5);
-  scopeItems.forEach((item, i) => {
-    doc.text((i + 1) + '. ' + item, P1_LEFT + 4, scopeStartY + i * SCOPE_LH);
+// Render numbered bold points
+if (points.length) {
+  doc.setFontSize(8);
+  points.forEach((block, i) => {
+    const prefix  = `${i + 1}. `;
+    const prefixW = doc.getTextWidth(prefix);
+    const wrapW   = P1_W - prefixW;
+    const lines   = doc.splitTextToSize(block.text, wrapW);
+
+    doc.setFont(undefined, 'bold');
+    doc.text(prefix, P1_LEFT, curY);
+    lines.forEach((l, li) => {
+      doc.setFont(undefined, 'bold');
+      doc.text(l, P1_LEFT + prefixW, curY + li * INTRO_LH);
+    });
+    curY += lines.length * INTRO_LH + 1;
   });
+  curY += 2;
+}
 
+const scopeStartY = curY;
   // ── ITEMS TABLE ───────────────────────────────────────────────────────────
   const TBL_LEFT     = P1_LEFT;
   const TBL_RIGHT    = P1_RIGHT;
   const TBL_W        = TBL_RIGHT - TBL_LEFT;
   const TBL_HEADER_H = 8;
 
-  // ── FIX 3: Wider Description, narrower Qty & Units ───────────────────────
+  // GST column only when gst% > 0
   const COL_SR    = 12;
-  const COL_QTY   = 8;   // reduced from 14
-  const COL_UNIT  = 12;   // reduced from 16
+  const COL_QTY   = 8;
+  const COL_UNIT  = 12;
   const COL_RATE  = 23;
+  const COL_GST   = 0;
   const COL_TOTAL = 24;
-  const COL_DESC  = TBL_W - COL_SR - COL_QTY - COL_UNIT - COL_RATE - COL_TOTAL; // now larger
+  const COL_DESC  = TBL_W - COL_SR - COL_QTY - COL_UNIT - COL_RATE - COL_GST - COL_TOTAL;
 
   const X_SR    = TBL_LEFT;
   const X_DESC  = X_SR   + COL_SR;
   const X_QTY   = X_DESC + COL_DESC;
   const X_UNIT  = X_QTY  + COL_QTY;
   const X_RATE  = X_UNIT + COL_UNIT;
-  const X_TOTAL = X_RATE + COL_RATE;
+  const X_GST   = X_RATE + COL_RATE;
+ const X_TOTAL = X_RATE + COL_RATE;
 
-  const tableHeaderY = scopeStartY + scopeItems.length * SCOPE_LH + 5;
+  const tableHeaderY = scopeStartY + 5;
 
-  doc.setFillColor(30, 30, 30);
-  doc.rect(TBL_LEFT, tableHeaderY, TBL_W, TBL_HEADER_H, 'F');
+  // Build column divider list once — reused for header, rows, and new pages
+const colDividers = [X_DESC, X_QTY, X_UNIT, X_RATE, X_TOTAL];
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFont(undefined, 'bold');
-  doc.setFontSize(8.5);
-  const hMidY = tableHeaderY + TBL_HEADER_H / 2 + 1.5;
-  doc.text('Sr. No.',      X_SR    + COL_SR   / 2,   hMidY, { align: 'center' });
-  doc.text('Description',  X_DESC  + 2,               hMidY);
-  doc.text('Qty',          X_QTY   + COL_QTY  / 2,   hMidY, { align: 'center' });
-  doc.text('Units',        X_UNIT  + COL_UNIT / 2,    hMidY, { align: 'center' });
-  doc.text('Unit Rate',    X_RATE  + COL_RATE  - 2,   hMidY, { align: 'right'  });
-  doc.text('Total Amount', X_TOTAL + COL_TOTAL - 2,   hMidY, { align: 'right'  });
+  function drawTableHeader(y) {
+    doc.setFillColor(30, 30, 30);
+    doc.rect(TBL_LEFT, y, TBL_W, TBL_HEADER_H, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(8.5);
+    const hMidY = y + TBL_HEADER_H / 2 + 1.5;
+    doc.text('Sr. No.',      X_SR    + COL_SR   / 2, hMidY, { align: 'center' });
+    doc.text('Description',  X_DESC  + 2,             hMidY);
+    doc.text('Qty',          X_QTY   + COL_QTY  / 2, hMidY, { align: 'center' });
+    doc.text('Units',        X_UNIT  + COL_UNIT / 2,  hMidY, { align: 'center' });
+    doc.text('Unit Rate',    X_RATE  + COL_RATE  - 2, hMidY, { align: 'right'  });
+   
+    doc.text('Total Amount', X_TOTAL + COL_TOTAL - 2, hMidY, { align: 'right'  });
+    doc.setDrawColor(26, 25, 24);
+    doc.setLineWidth(0.3);
+    colDividers.forEach(x => doc.line(x, y, x, y + TBL_HEADER_H));
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.rect(TBL_LEFT, y, TBL_W, TBL_HEADER_H);
+    doc.setTextColor(0, 0, 0);
+  }
 
-  doc.setDrawColor(26, 25, 24);
-  doc.setLineWidth(0.3);
-  [X_DESC, X_QTY, X_UNIT, X_RATE, X_TOTAL].forEach(x => {
-    doc.line(x, tableHeaderY, x, tableHeaderY + TBL_HEADER_H);
-  });
-
-  doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(0.5);
-  doc.rect(TBL_LEFT, tableHeaderY, TBL_W, TBL_HEADER_H);
-  doc.setTextColor(0, 0, 0);
+  drawTableHeader(tableHeaderY);
 
   const ROW_H_GROUP = 8;
   const ROW_H_ITEM  = 8;
@@ -342,6 +402,7 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
 
   let tblY   = tableHeaderY + TBL_HEADER_H;
   let rowIdx = 0;
+  let p1PageCount = 1;
 
   function drawTableRow(y, h, isGroup) {
     if (!isGroup) {
@@ -352,9 +413,7 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
       doc.setDrawColor(190, 190, 190);
       doc.setLineWidth(0.3);
       doc.rect(TBL_LEFT, y, TBL_W, h);
-      [X_DESC, X_QTY, X_UNIT, X_RATE, X_TOTAL].forEach(x => {
-        doc.line(x, y, x, y + h);
-      });
+      colDividers.forEach(x => doc.line(x, y, x, y + h));
     } else {
       doc.setFillColor(230, 230, 230);
       doc.rect(TBL_LEFT, y, TBL_W, h, 'F');
@@ -365,34 +424,13 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
     doc.setDrawColor(0, 0, 0);
   }
 
-  let p1PageCount = 1;
-
   const checkP1Break = (need) => {
     if (tblY + need > pageHeight - 15) {
       drawPage1Footer(`Page: ${doc.internal.getCurrentPageInfo().pageNumber} of ...`);
       p1PageCount++;
       doc.addPage();
       doc.setTextColor(0, 0, 0);
-
-      doc.setFillColor(30, 30, 30);
-      doc.rect(TBL_LEFT, 14, TBL_W, TBL_HEADER_H, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont(undefined, 'bold');
-      doc.setFontSize(8.5);
-      const hMidY2 = 14 + TBL_HEADER_H / 2 + 1.5;
-      doc.text('Sr. No.',      X_SR    + COL_SR   / 2, hMidY2, { align: 'center' });
-      doc.text('Description',  X_DESC  + 2,             hMidY2);
-      doc.text('Qty',          X_QTY   + COL_QTY  / 2, hMidY2, { align: 'center' });
-      doc.text('Units',        X_UNIT  + COL_UNIT / 2,  hMidY2, { align: 'center' });
-      doc.text('Unit Rate',    X_RATE  + COL_RATE - 2,  hMidY2, { align: 'right'  });
-      doc.text('Total Amount', X_TOTAL + COL_TOTAL - 2, hMidY2, { align: 'right'  });
-      doc.setDrawColor(255, 255, 255); doc.setLineWidth(0.3);
-      [X_DESC, X_QTY, X_UNIT, X_RATE, X_TOTAL].forEach(x => {
-        doc.line(x, 14, x, 14 + TBL_HEADER_H);
-      });
-      doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.5);
-      doc.rect(TBL_LEFT, 14, TBL_W, TBL_HEADER_H);
-      doc.setTextColor(0, 0, 0);
+      drawTableHeader(14);
       tblY   = 14 + TBL_HEADER_H;
       rowIdx = 0;
     }
@@ -421,15 +459,18 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
       descLines.forEach((line, li) => {
         doc.text(line, X_DESC + 2, tblY + 5 + li * DESC_LINE_H);
       });
-      if (row.qty)      doc.text(safeStr(row.qty),   X_QTY  + COL_QTY  / 2, midY, { align: 'center' });
-      if (row.units)    doc.text(safeStr(row.units),  X_UNIT + COL_UNIT / 2, midY, { align: 'center' });
-      if (row.unitRate) doc.text(fmt(row.unitRate),   X_RATE + COL_RATE - 2, midY, { align: 'right'  });
-      if (row.total)    doc.text(fmt(row.total),      X_TOTAL + COL_TOTAL - 2, midY, { align: 'right' });
+      if (row.qty)      doc.text(safeStr(row.qty),  X_QTY  + COL_QTY  / 2, midY, { align: 'center' });
+      if (row.units)    doc.text(safeStr(row.units), X_UNIT + COL_UNIT / 2, midY, { align: 'center' });
+      if (row.unitRate) doc.text(fmt(row.unitRate),  X_RATE + COL_RATE  - 2, midY, { align: 'right'  });
+      // GST amount column — only rendered when showGstCol is true
+      
+      if (row.total)    doc.text(fmt(row.total),     X_TOTAL + COL_TOTAL - 2, midY, { align: 'right' });
       rowIdx++;
       tblY += rowH;
     }
   });
 
+  // Fix page footers on page-1 pages now that totalPages is known
   const totalPages = p1PageCount + 1;
 
   for (let pg = 1; pg <= p1PageCount; pg++) {
@@ -471,7 +512,6 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
   function drawCSHeader(y) {
     doc.setFillColor(30, 30, 30);
     doc.rect(CS_LEFT, y, CS_TABLE_W, CS_HEADER_H, 'F');
-
     doc.setTextColor(255, 255, 255);
     doc.setFont(undefined, 'bold');
     doc.setFontSize(8.5);
@@ -479,7 +519,6 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
     doc.text('No.',          CS_LEFT + CS_SR_W / 2, y + 6.8, { align: 'center' });
     doc.text('Cost Summary', CS_LEFT + CS_SR_W + 4, y + CS_HEADER_H / 2 + 1.5);
     doc.text('Sub Total',    CS_RIGHT - 3,           y + CS_HEADER_H / 2 + 1.5, { align: 'right' });
-
     doc.setTextColor(0, 0, 0);
     return y + CS_HEADER_H;
   }
@@ -487,9 +526,7 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
   function drawCSRow(y, srLabel, label, amountStr) {
     doc.setFillColor(230, 230, 230);
     doc.rect(CS_LEFT, y, CS_TABLE_W, CS_ROW_H, 'F');
-
     const midY = y + CS_ROW_H / 2 + 1.5;
-
     doc.setFont(undefined, 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(0, 0, 0);
@@ -505,12 +542,13 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
     const TOT_W      = TOT_RIGHT - TOT_LEFT;
     const DIVX       = TOT_RIGHT - CS_AMT_W;
 
+    // Only include DISCOUNT row if discount > 0, GST row only if gst > 0
     const rows = [
-      { label: 'SUB TOTAL :',            value: fmt(taxable)     },
-      { label: 'DISCOUNT :',             value: fmt(discountAmt) },
-      { label: '18% GST AMOUNT :',       value: fmt(gstAmt)      },
-      { label: 'NET QUOTATION AMOUNT :', value: fmt(netTotal)    },
-    ];
+  { label: 'SUB TOTAL :', value: fmt(taxable) },
+  { label: 'DISCOUNT :', value: fmt(discountAmt) },  // ✅ ALWAYS SHOWN
+  ...(gstPercent > 0 ? [{ label: `${gstPercent}% GST AMOUNT :`, value: fmt(gstAmt) }] : []),
+  { label: 'NET QUOTATION AMOUNT :', value: fmt(netTotal) },
+];
 
     rows.forEach((r, i) => {
       const ry = startY + i * TOT_LINE_H;
@@ -526,7 +564,6 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
       const midY = ry + TOT_LINE_H / 2 + 1.5;
       doc.text(r.label, TOT_LEFT + 3, midY);
       doc.text(r.value, TOT_RIGHT - 3, midY, { align: 'right' });
-      doc.setTextColor(0, 0, 0);
       doc.setDrawColor(0, 0, 0);
     });
 
@@ -534,9 +571,11 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
   }
 
   function drawInWords(startY) {
-    const iwText  = `INDIAN RUPEES ${numberToWords(Math.round(netTotal))} ONLY`;
+    const iwText   = `INDIAN RUPEES ${numberToWords(Math.round(netTotal))} ONLY`;
     const IW_LABEL = 'IN WORDS : ';
-    const iwLabelW = (() => { doc.setFont(undefined, 'bold'); doc.setFontSize(8); return doc.getTextWidth(IW_LABEL); })();
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(8);
+    const iwLabelW = doc.getTextWidth(IW_LABEL);
     const iwAvailW = CS_TABLE_W - iwLabelW - 6;
     const iwLines  = doc.splitTextToSize(iwText, iwAvailW);
     const iwH      = Math.max(9, iwLines.length * 5 + 4);
@@ -551,29 +590,56 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
     doc.setFont(undefined, 'bold');
     doc.setFontSize(8);
     doc.text(IW_LABEL, CS_LEFT + 3, startY + 5.5);
-
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(8);
-    doc.text(iwLines, CS_LEFT + 3 + iwLabelW, startY + 5.5);
+    doc.text(iwLines,  CS_LEFT + 3 + iwLabelW, startY + 5.5);
 
     return startY + iwH;
   }
 
-  function drawNotes(startY) {
-    const notes = [
-      'Fire protection system supply and installation using',
-      'GI"Class B" Pipes & High quality Fittings. -45555',
-      'Fire protection system supply and installation using',
-      'GI"Class B" Pipes & High quality Fittings. 56666',
-    ];
+  // ── Dynamic Terms & Conditions ────────────────────────────────────────────
+function drawTermsAndConditions(startY) {
+  if (!termsLines.length) return startY;
+
+  const TC_LINE_H = 5;
+  const TC_WRAP_W = CS_TABLE_W - 8; // available width with left padding
+
+  // Heading — bold + underline, no box/background
+  doc.setFont(undefined, 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(0, 0, 0);
+  doc.text('TERMS & CONDITIONS', CS_LEFT, startY);
+  const headingW = doc.getTextWidth('TERMS & CONDITIONS');
+  doc.setLineWidth(0.4);
+  doc.line(CS_LEFT, startY + 1, CS_LEFT + headingW, startY + 1);
+
+  let lineY = startY + 7;
+
+  if (termsLines.length === 1) {
+    // Single sentence — plain wrapped text, no number
     doc.setFont(undefined, 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(0, 0, 0);
-    notes.forEach((line, i) => {
-      doc.text(line, CS_LEFT + 2, startY + i * 5);
+    doc.setFontSize(8.5);
+    const wrapped = doc.splitTextToSize(termsLines[0], TC_WRAP_W);
+    wrapped.forEach((l) => {
+      doc.text(l, CS_LEFT, lineY);
+      lineY += TC_LINE_H;
     });
-    return startY + notes.length * 5;
+  } else {
+    // Multiple lines — numbered point-wise
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(8.5);
+    termsLines.forEach((line, i) => {
+      const prefix  = `${i + 1}.  `;
+      const prefixW = doc.getTextWidth(prefix);
+      const wrapped = doc.splitTextToSize(line, TC_WRAP_W - prefixW);
+      doc.text(prefix, CS_LEFT, lineY);
+      wrapped.forEach((wl, wi) => {
+        doc.text(wl, CS_LEFT + prefixW, lineY + wi * TC_LINE_H);
+      });
+      lineY += wrapped.length * TC_LINE_H + 1.5;
+    });
   }
+
+  return lineY + 2;
+}
 
   function drawSignature(startY) {
     doc.setFont(undefined, 'normal');
@@ -591,90 +657,6 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
     doc.text('For : Inovace Engineering', CS_RIGHT - 3, startY + 6, { align: 'right' });
 
     return startY + 14;
-  }
-
-  function drawPaymentTerms(startY) {
-    const PT_ROW_H   = 7;
-    const PT_STAGE_W = 22;
-    const PT_PAY_W   = 80;
-    const PT_AMT_W   = 35;
-
-    const PT_TOTAL_ROWS = 4;
-    const PT_LABEL_H    = 6;
-    const PT_BOX_H      = PT_ROW_H * PT_TOTAL_ROWS;
-    const PT_PADDING    = 4;
-
-    doc.setDrawColor(242, 241, 237);
-    doc.setLineWidth(0.5);
-    doc.rect(CS_LEFT - 5, startY - PT_LABEL_H - 2, CS_TABLE_W + 10, PT_LABEL_H + PT_BOX_H + PT_PADDING + 4);
-    doc.setDrawColor(0, 0, 0);
-
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(80, 80, 80);
-    doc.text('Payment Terms', CS_LEFT + 2, startY - 2);
-    doc.setTextColor(0, 0, 0);
-
-    doc.setFillColor(210, 210, 210);
-    doc.rect(CS_LEFT, startY, CS_TABLE_W, PT_ROW_H, 'F');
-    doc.setDrawColor(150, 150, 150);
-    doc.setLineWidth(0.3);
-    doc.rect(CS_LEFT, startY, CS_TABLE_W, PT_ROW_H);
-
-    const hMid = startY + PT_ROW_H / 2 + 1.5;
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(8);
-
-    let px = CS_LEFT;
-    doc.text('Stage',   px + PT_STAGE_W / 2, hMid, { align: 'center' });
-    px += PT_STAGE_W; doc.line(px, startY, px, startY + PT_ROW_H);
-    doc.text('Payment', px + 3, hMid);
-    px += PT_PAY_W;   doc.line(px, startY, px, startY + PT_ROW_H);
-    doc.text('Amount',  px + 3, hMid);
-    px += PT_AMT_W;   doc.line(px, startY, px, startY + PT_ROW_H);
-    doc.text('Remarks', px + 3, hMid);
-
-    const ptRows = [
-      {
-        stage:   `${D.advance_percentage || 0}% -`,
-        payment: 'Against delivery.',
-        amount:  fmt(parseFloat(D.advance_amount) || 0),
-        remarks: safeStr(D.advance_remark),
-      },
-      {
-        stage:   `${D.onmaterialdelivery_percentage || 0}%`,
-        payment: 'On work progress.',
-        amount:  fmt(parseFloat(D.onmaterialdelivery_amount) || 0),
-        remarks: safeStr(D.onmaterialdelivery_remark),
-      },
-      {
-        stage:   `${D.onWork_completetion_percentage || 0}%`,
-        payment: 'Against Testing and Commissioning..',
-        amount:  fmt(parseFloat(D.onWork_completetion_amount) || 0),
-        remarks: safeStr(D.onWork_completetion_remark),
-      },
-    ];
-
-    ptRows.forEach((pr, idx) => {
-      const ry   = startY + PT_ROW_H * (idx + 1);
-      const rMid = ry + PT_ROW_H / 2 + 1.5;
-      doc.setFillColor(idx % 2 === 0 ? 255 : 248, idx % 2 === 0 ? 255 : 248, idx % 2 === 0 ? 255 : 248);
-      doc.rect(CS_LEFT, ry, CS_TABLE_W, PT_ROW_H, 'F');
-      doc.setDrawColor(200, 200, 200);
-      doc.setLineWidth(0.3);
-      doc.rect(CS_LEFT, ry, CS_TABLE_W, PT_ROW_H);
-
-      doc.setFont(undefined, 'normal');
-      doc.setFontSize(8);
-      let rx = CS_LEFT;
-      doc.text(pr.stage,   rx + PT_STAGE_W / 2, rMid, { align: 'center' });
-      rx += PT_STAGE_W; doc.line(rx, ry, rx, ry + PT_ROW_H);
-      doc.text(pr.payment, rx + 3, rMid);
-      rx += PT_PAY_W;   doc.line(rx, ry, rx, ry + PT_ROW_H);
-      doc.text(pr.amount,  rx + PT_AMT_W - 3, rMid, { align: 'right' });
-      rx += PT_AMT_W;   doc.line(rx, ry, rx, ry + PT_ROW_H);
-      doc.text(pr.remarks, rx + 3, rMid);
-    });
   }
 
   // ── Render page 2 ─────────────────────────────────────────────────────────
@@ -695,10 +677,9 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
   });
 
   let afterTotY = drawTotals(csY);
-  afterTotY = drawInWords(afterTotY);
-  afterTotY = drawNotes(afterTotY + 6) + 4;
-  afterTotY = drawSignature(afterTotY + 6);
-  drawPaymentTerms(afterTotY + 4);
+  afterTotY     = drawInWords(afterTotY);
+  afterTotY     = drawTermsAndConditions(afterTotY + 6);
+  drawSignature(afterTotY + 6);
 
   return Buffer.from(doc.output('arraybuffer'));
 };

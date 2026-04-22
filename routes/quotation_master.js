@@ -9,15 +9,31 @@ const db = require('../dbconnection');
 
 router.post("/Save_quotation_master/", function (req, res, next) {
   try {
+    console.log("REQ BODY:", JSON.stringify(req.body, null, 2));
+
     quotation_master.Save_quotation_master(req.body, function (err, rows) {
       if (err) {
-        res.json(err);
-      } else {
+        console.error("SP ERROR:", err);
+        return res.json(err);
+      }
+
+      console.log("RAW SP RESPONSE:", JSON.stringify(rows, null, 2));
+
+      if (rows && rows[0] && rows[0].length > 0) {
+        console.log("FINAL RESPONSE:", rows[0][0]);
         res.json(rows[0][0]);
+      } else {
+        console.log("NO DATA RETURNED FROM SP");
+        res.json({
+          success: false,
+          message: "No data returned from stored procedure",
+          data: rows
+        });
       }
     });
   } catch (e) {
-  } finally {
+    console.error("CATCH ERROR:", e);
+    res.json(e);
   }
 });
 router.get("/Search_Quotation_Report/", function (req, res, next) {
