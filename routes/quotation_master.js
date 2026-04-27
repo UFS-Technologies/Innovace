@@ -4,21 +4,140 @@ const path             = require('path');
 const fs               = require('fs');
 
 const quotation_master = require('../models/quotation_master');       // ← adjust path
-const { generateQuotationPdf } = require('../utils/quotation_pdf_generator'); // ← adjust path
-const db = require('../dbconnection');
+const { generateQuotationPdf, normalizeQuotationPayload } = require('../utils/quotation_pdf_generator'); // ← adjust path
 
+const db = require('../dbconnection');
+router.post("/save_template", (req, res) => {
+
+  const templateData = req.body;
+
+  quotation_master.Save_template_master(templateData, (err, result) => {
+
+    if (err) {
+      console.error("Route Error:", err);
+      return res.status(500).json({
+        success: false,
+        message: "Database error"
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result[0][0]   // SP SELECT output
+    });
+
+  });
+
+});
+router.get("/get_template", (req, res) => {
+
+ quotation_master.Get_template_master((err, result) => {
+
+    if (err) {
+      console.error(err);
+      return res.status(500).json({
+        success: false,
+        message: "Database error"
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result[0]
+    });
+
+  });
+
+});
+router.post("/update_template", (req, res) => {
+
+  const data = {
+    template_id: req.body.template_id,
+    template_name: req.body.template_name
+  };
+
+  quotation_master.Update_Template(data, (err, result) => {
+
+    if (err) {
+      console.error("Error:", err);
+      return res.status(500).json({
+        success: false,
+        message: "Database error"
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Template updated successfully",
+      data: result[0]
+    });
+
+  });
+
+});
+router.delete("/delete_template/:template_id", (req, res) => {
+
+  const template_id = req.params.template_id;
+
+  quotation_master.Delete_Template(template_id, (err, result) => {
+
+    if (err) {
+      console.error("Error:", err);
+      return res.status(500).json({
+        success: false,
+        message: "Database error"
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Template deleted successfully"
+    });
+
+  });
+
+});
+router.get("/load_by_template/:template_id", (req, res) => {
+
+  const template_id = req.params.template_id;
+
+    quotation_master.Load_Quotation_By_Template(template_id, (err, result) => {
+
+    if (err) {
+      console.error("Error:", err);
+      return res.status(500).json({
+        success: false,
+        message: "Database error"
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result
+    });
+
+  });
+
+});
 router.post("/Save_quotation_master/", function (req, res, next) {
   try {
-    console.log("REQ BODY:", JSON.stringify(req.body, null, 2));
-
-    quotation_master.Save_quotation_master(req.body, function (err, rows) {
+    console.log("REQ BODY (raw):", JSON.stringify(req.body, null, 2));
+ 
+    // Normalize: converts <b>/<span style="color:red"> etc. → [b]/[red] bracket tags
+    // Works on: Description, Terms_And_Conditions, Payment_Term_Description,
+    //           Subject, KindAttn, Warranty, and ItemName inside quotation_details
+    const { master } = normalizeQuotationPayload(req.body);
+ 
+    console.log("REQ BODY (normalized):", JSON.stringify(master, null, 2));
+ 
+    quotation_master.Save_quotation_master(master, function (err, rows) {
       if (err) {
         console.error("SP ERROR:", err);
         return res.json(err);
       }
-
+ 
       console.log("RAW SP RESPONSE:", JSON.stringify(rows, null, 2));
-
+ 
       if (rows && rows[0] && rows[0].length > 0) {
         console.log("FINAL RESPONSE:", rows[0][0]);
         res.json(rows[0][0]);

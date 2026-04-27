@@ -2,18 +2,22 @@
  var fs = require('fs');
  var quotation_master=
  { 
+  
 Save_quotation_master: function (quotation_master_, callback) {
+  const toDecimal = (val) => {
+  return val === "" || val === null || val === undefined ? 0 : val;
+};
 
   return db.query(
-    "CALL Save_quotation_master(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+    "CALL Save_quotation_master(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
     [
       quotation_master_.Quotation_Master_Id,
       quotation_master_.Customer_Id,
       quotation_master_.PaymentTerms,
       quotation_master_.Payment_Term_Description,
-      quotation_master_.TotalAmount,
-      quotation_master_.Subsidy_Amount,
-      quotation_master_.NetTotal,
+    toDecimal(quotation_master_.TotalAmount),            // ✅ safe
+  toDecimal(quotation_master_.Subsidy_Amount),         // 🔥 FIX HERE
+  toDecimal(quotation_master_.NetTotal),
       quotation_master_.Product_Name,
       quotation_master_.Warranty,
       quotation_master_.Terms_And_Conditions,
@@ -51,12 +55,15 @@ Save_quotation_master: function (quotation_master_, callback) {
       quotation_master_.KindAttn,
       quotation_master_.Subject,
       quotation_master_.IS_GST,
-quotation_master_.GST_Percent,
-quotation_master_.Category,
-quotation_master_.Reference,
-quotation_master_.Sales_Person,
-quotation_master_.Discount_Percentage,
-quotation_master_.Discount_Amount
+      quotation_master_.GST_Percent,
+      quotation_master_.Category,
+      quotation_master_.Reference,
+      quotation_master_.Sales_Person,
+      quotation_master_.Discount_Percentage,
+      quotation_master_.Discount_Amount,
+
+      quotation_master_.template_id ,
+      quotation_master_.template_name   // ✅ LAST (46th)
     ],
     callback
   );
@@ -66,6 +73,58 @@ quotation_master_.Discount_Amount
 
 
  ,
+ Save_template_master: function (template_, callback) {
+
+  return db.query(
+    "CALL Save_template_master(?,?,?)",
+    [
+      template_.template_id || 0,   // 0 = insert
+      template_.template_name,
+      template_.delete_status || 0
+    ],
+    callback
+  );
+
+},
+Get_template_master: function (callback) {
+
+  return db.query(
+    "CALL Get_template_master()",
+    [],
+    callback
+  );
+
+},
+Update_Template: function (data, callback) {
+
+  return db.query(
+    "CALL Update_Template(?,?)",
+    [
+      data.template_id,
+      data.template_name
+    ],
+    callback
+  );
+
+},
+Delete_Template: function (template_id, callback) {
+
+  return db.query(
+    "CALL Delete_Template(?)",
+    [template_id],
+    callback
+  );
+
+},
+Load_Quotation_By_Template: function (template_id, callback) {
+
+  return db.query(
+    "CALL Load_Quotation_By_Template(?)",
+    [template_id],
+    callback
+  );
+
+},
  Delete_quotation_master:function(quotation_master_Id_,callback)
  { 
 return db.query("CALL Delete_quotation_master(@quotation_master_Id_ :=?)",[quotation_master_Id_],callback);

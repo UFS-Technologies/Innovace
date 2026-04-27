@@ -6,11 +6,11 @@ const path      = require('path');
 require('jspdf-autotable');
 
 const CONTACT = {
-  company : 'Inovace Engineering',
-ContactNo:'+919897678789',
-  email   : 'info@inovaceengineering.com',
-  website : 'www.inovaceengineering.com',
-  address : 'Your Office Address, City, State - PIN',
+  company  : 'Inovace Engineering',
+  ContactNo: '+919897678789',
+  email    : 'info@inovaceengineering.com',
+  website  : 'www.inovaceengineering.com',
+  address  : 'Your Office Address, City, State - PIN',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -42,6 +42,134 @@ function numberToWords(num) {
   return w.trim();
 }
 
+const COLOR_MAP_GLOBAL = {
+  red:    [220, 30,  30 ],
+  blue:   [30,  80,  220],
+  green:  [30,  140, 60 ],
+  yellow: [200, 160, 0  ],
+  orange: [210, 100, 0  ],
+  purple: [120, 40,  180],
+  black:  [0,   0,   0  ],
+  gray:   [100, 100, 100],
+  white:  [255, 255, 255],
+  navy:   [28,  42,  95 ],
+};
+
+/**
+ * Normalize any rich text string (HTML + bracket tags) into unified [tag] format.
+ */
+function normalizeRichText(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+
+  let str = raw;
+
+  // 1. <strong> / <b> → [b]
+  str = str.replace(/<\/\s*(strong|b)\s*>/gi,       '[/b]');
+  str = str.replace(/<\s*(strong|b)\s*(?:[^>]*)>/gi, '[b]');
+
+  // 2. <em> / <i> → [i]
+  str = str.replace(/<\/\s*(em|i)\s*>/gi,       '[/i]');
+  str = str.replace(/<\s*(em|i)\s*(?:[^>]*)>/gi, '[i]');
+
+  // 3. <u> → [u]
+  str = str.replace(/<\/\s*u\s*>/gi, '[/u]');
+  str = str.replace(/<\s*u\s*>/gi,   '[u]');
+
+  // 4. <span style="color:X"> → [colorname]
+  str = str.replace(
+    /<span[^>]*style\s*=\s*["'][^"']*color\s*:\s*([^;'"]+)[^"']*["'][^>]*>/gi,
+    (_, rawColor) => {
+      const key = rawColor.trim().toLowerCase().replace(/\s/g, '');
+      const HEX_TO_NAME = {
+        '#000000': 'black', '#1c2a5f': 'navy', '#dc1e1e': 'red',
+        '#1e50dc': 'blue',  '#1e8c3c': 'green','#d26400': 'orange',
+        '#782db4': 'purple','#646464': 'gray',
+      };
+      const name = HEX_TO_NAME[key] || (COLOR_MAP_GLOBAL[key] ? key : null);
+      return name ? `[${name}]` : '';
+    }
+  );
+  str = str.replace(/<\/span>/gi, '');
+
+  // 5. <br> → \n
+  str = str.replace(/<br\s*\/?>/gi, '\n');
+
+  // 6. Block elements → \n
+  str = str.replace(/<\/?\s*(p|div|h[1-6]|li)\s*[^>]*>/gi, m => m.startsWith('</') ? '\n' : '');
+  str = str.replace(/<\/?\s*(ul|ol)\s*[^>]*>/gi, '');
+
+  // 7. Strip remaining HTML tags
+  str = str.replace(/<[^>]+>/g, '');
+
+  // 8. Decode HTML entities
+  str = str
+    .replace(/&amp;/g,   '&')
+    .replace(/&lt;/g,    '<')
+    .replace(/&gt;/g,    '>')
+    .replace(/&nbsp;/g,  ' ')
+    .replace(/&quot;/g,  '"')
+    .replace(/&#39;/g,   "'")
+    .replace(/&#x27;/g,  "'")
+    .replace(/&#x2F;/g,  '/')
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)));
+
+  // 9. Fix garbled bullet characters (ð· = garbled •)
+  str = str.replace(/ð·/g,           '  • ');
+  str = str.replace(/\u00f0\u00b7/g, '  • ');
+  str = str.replace(/[•●▪▸►]/g,     '  • ');
+
+  // 10. Collapse 3+ blank lines → max 2
+  str = str.replace(/\n{3,}/g, '\n\n');
+
+  return str.trim();
+}
+
+/**
+ * Strip ALL rich text tags, returning plain text.
+ */
+function stripAllTags(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  return raw
+    .replace(/<[^>]+>/g,          '')
+    .replace(/\[\/?\w+[^\]]*\]/g, '')
+    .replace(/&[a-zA-Z#\d]+;/g,   ' ')
+    .replace(/\s+/g,              ' ')
+    .trim();
+}
+
+/**
+ * Normalize an entire quotation payload before saving to DB.
+ */
+function normalizeQuotationPayload(payload) {
+  const RICH_MASTER_FIELDS = [
+    'Description', 'Terms_And_Conditions', 'Payment_Term_Description',
+    'Subject', 'KindAttn', 'Warranty',
+  ];
+  const RICH_DETAIL_FIELDS = ['ItemName', 'Description', 'Remarks'];
+
+  const master = { ...payload };
+
+  RICH_MASTER_FIELDS.forEach(field => {
+    if (master[field] != null) master[field] = normalizeRichText(String(master[field]));
+  });
+
+  let details = master.quotation_details || [];
+  if (typeof details === 'string') {
+    try { details = JSON.parse(details); } catch { details = []; }
+  }
+
+  details = details.map(item => {
+    const cleanItem = { ...item };
+    RICH_DETAIL_FIELDS.forEach(field => {
+      if (cleanItem[field] != null) cleanItem[field] = normalizeRichText(String(cleanItem[field]));
+    });
+    return cleanItem;
+  });
+
+  master.quotation_details = details;
+  return { master, details };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN GENERATOR
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,7 +181,180 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
   const pageHeight = doc.internal.pageSize.getHeight();
   const D          = quotationData;
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // RICH TEXT ENGINE
+  // ══════════════════════════════════════════════════════════════════════════
+
+  const COLOR_MAP = COLOR_MAP_GLOBAL;
+
+  /**
+   * Parse a raw string with [b], [i], [u], [yellow], etc.
+   * Returns an array of segments: { text, bold, italic, color }
+   */
+  function parseRichText(raw) {
+    if (!raw) return [];
+    const segments = [];
+    const tagRegex = /\[(\/?)(b|i|u|red|blue|green|yellow|orange|purple|gray|black|white|navy)\]/gi;
+
+    let bold   = false;
+    let italic = false;
+    let color  = null;
+    let pos    = 0;
+
+    let match;
+    while ((match = tagRegex.exec(raw)) !== null) {
+      if (match.index > pos) {
+        segments.push({ text: raw.slice(pos, match.index), bold, italic, color });
+      }
+
+      const closing = match[1] === '/';
+      const tag     = match[2].toLowerCase();
+
+      if (tag === 'b' || tag === 'u') {
+        bold = !closing;       // [u] rendered as bold in PDF
+      } else if (tag === 'i') {
+        italic = !closing;
+      } else {
+        color = closing ? null : tag;  // color tag
+      }
+
+      pos = match.index + match[0].length;
+    }
+
+    if (pos < raw.length) {
+      segments.push({ text: raw.slice(pos), bold, italic, color });
+    }
+
+    return segments.filter(s => s.text.length > 0);
+  }
+
+  /**
+   * Render rich-text segments on a single line at (x, y).
+   */
+  function renderRichLine(doc, segments, x, y, fontSize = 8.5, defaultColor = [0, 0, 0]) {
+    let curX = x;
+    segments.forEach(seg => {
+      const rgb   = seg.color ? (COLOR_MAP[seg.color] || defaultColor) : defaultColor;
+      const style = seg.bold && seg.italic ? 'bolditalic'
+                  : seg.bold               ? 'bold'
+                  : seg.italic             ? 'italic'
+                  :                          'normal';
+      doc.setFont(undefined, style);
+      doc.setFontSize(fontSize);
+      doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      doc.text(seg.text, curX, y);
+      curX += doc.getTextWidth(seg.text);
+    });
+    doc.setTextColor(0, 0, 0);
+    doc.setFont(undefined, 'normal');
+    return curX;
+  }
+
+  /**
+   * Word-wrap rich segments into lines fitting maxWidth.
+   */
+  function wrapRichSegments(doc, segments, maxWidth, fontSize) {
+    const lines  = [];
+    let curLine  = [];
+    let curWidth = 0;
+
+    segments.forEach(seg => {
+      const words = seg.text.split(/( )/);
+      words.forEach(token => {
+        if (!token) return;
+        doc.setFont(undefined, seg.bold ? 'bold' : 'normal');
+        doc.setFontSize(fontSize);
+        const tokenW = doc.getTextWidth(token);
+
+        if (curWidth + tokenW > maxWidth && curWidth > 0 && token !== ' ') {
+          lines.push(curLine);
+          curLine  = [];
+          curWidth = 0;
+        }
+
+        if (!(token === ' ' && curWidth === 0)) {
+          curLine.push({ ...seg, text: token });
+          curWidth += tokenW;
+        }
+      });
+    });
+
+    if (curLine.length) lines.push(curLine);
+    return lines;
+  }
+
+  /**
+   * Render a multi-line rich text block, wrapping to maxWidth.
+   * Handles \n as hard line breaks.
+   */
+ function renderRichBlock(doc, rawText, x, y, maxWidth, lineHeight = 5, fontSize = 8.5, defaultColor = [0, 0, 0]) {
+  // Parse the ENTIRE text at once (don't split first)
+  // Then split wrapped lines while preserving segment state
+  
+  const logicalLines = (rawText || '').split(/\n/);
+  
+  // Track carry-over state across \n splits
+  let carryBold   = false;
+  let carryItalic = false;
+  let carryColor  = null;
+
+  logicalLines.forEach(logicalLine => {
+    const trimmed = logicalLine; // don't trim — preserve structure
+    if (!trimmed.trim()) {
+      y += lineHeight * 0.6;
+      return;
+    }
+
+    // Inject carry state at start of each line
+    const injectedLine = `${carryBold ? '[b]' : ''}${carryColor ? `[${carryColor}]` : ''}${trimmed}`;
+
+    const segments = parseRichText(injectedLine);
+    const wrapped  = wrapRichSegments(doc, segments, maxWidth, fontSize);
+
+    wrapped.forEach(lineSeg => {
+      renderRichLine(doc, lineSeg, x, y, fontSize, defaultColor);
+      y += lineHeight;
+    });
+
+    // Update carry state from what parseRichText left open
+    // Re-parse to find final state
+    const finalState = getFinalRichState(trimmed, carryBold, carryItalic, carryColor);
+    carryBold   = finalState.bold;
+    carryItalic = finalState.italic;
+    carryColor  = finalState.color;
+  });
+
+  return y;
+}
+
+// New helper — parse a line and return final bold/italic/color state
+function getFinalRichState(raw, initBold = false, initItalic = false, initColor = null) {
+  const tagRegex = /\[(\/?)(b|i|u|red|blue|green|yellow|orange|purple|gray|black|white|navy)\]/gi;
+  let bold   = initBold;
+  let italic = initItalic;
+  let color  = initColor;
+  let match;
+  while ((match = tagRegex.exec(raw)) !== null) {
+    const closing = match[1] === '/';
+    const tag     = match[2].toLowerCase();
+    if (tag === 'b' || tag === 'u') { bold   = !closing; }
+    else if (tag === 'i')           { italic = !closing; }
+    else                            { color  = closing ? null : tag; }
+  }
+  return { bold, italic, color };
+}
+
+  /**
+   * Strip rich-text bracket tags only (for width measurement / prefix detection).
+   */
+  function stripRichTags(str) {
+    return (str || '').replace(/\[\/?\w+[^\]]*\]/g, '').trim();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // HELPERS
+  // ══════════════════════════════════════════════════════════════════════════
+
   const safeStr = (v) => (v == null ? '' : String(v)).trim();
 
   const fmt = (n) => {
@@ -78,10 +379,9 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
     return `${dd}-${mm}-${yyyy}`;
   };
 
+  // Relaxed cleanText — only strip genuine garbled multi-byte sequences
   const cleanText = (str) => safeStr(str)
-    .replace(/\[\/?\w+[^\]]*\]/g, '')
     .replace(/[\u00f0][\u00b0-\u00bf]/g, '')
-    .replace(/[^\x09\x0A\x0D\x20-\x7E\u00A0-\u024F]/g, '')
     .trim();
 
   const cleanItemName = (str) => cleanText(str).replace(/\n|\r/g, ' ').replace(/\s+/g, ' ');
@@ -100,32 +400,21 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
     console.error('[Logo] Failed to load innovace_logo.jpg:', e.message);
   }
 
-  console.log('[Logo Status] logoB64 present:', !!logoB64);
+  const P1_LEFT  = 18;
+  const P1_RIGHT = pageWidth - 18;
+  const P1_W     = P1_RIGHT - P1_LEFT;
 
-  // Page 1 — large logo top center
-const stampLogoPage1 = () => {
-  if (logoB64) {
-    try {
-      const logoW = 50;
-      const logoH = 18;
-      const logoX = P1_LEFT; // ← moved to left margin
-      doc.addImage(logoB64, logoType, logoX, 3, logoW, logoH);
-      console.log('[Logo] Stamped on Page 1');
-    } catch (e) {
-      console.error('[Logo] Page1 addImage FAILED:', e.message);
+  const stampLogoPage1 = () => {
+    if (logoB64) {
+      try { doc.addImage(logoB64, logoType, P1_LEFT, 3, 50, 18); }
+      catch (e) { console.error('[Logo] Page1 addImage FAILED:', e.message); }
     }
-  }
-};
+  };
 
-
-  // Other pages — small logo top left
   const stampLogo = () => {
     if (logoB64) {
-      try {
-        doc.addImage(logoB64, logoType, P1_LEFT, 3, 30, 10);
-      } catch (e) {
-        console.error('[Logo] stampLogo addImage FAILED:', e.message);
-      }
+      try { doc.addImage(logoB64, logoType, P1_LEFT, 3, 30, 10); }
+      catch (e) { console.error('[Logo] stampLogo addImage FAILED:', e.message); }
     }
   };
 
@@ -143,10 +432,10 @@ const stampLogoPage1 = () => {
   const entryDt   = formatDate(D.EntryDate);
   const validUpto = formatDateDDMMYYYY(D.ValidUpto);
 
-  const clientName   = safeStr(customerDetails.Customer_Name  || '');
-  const clientAddr   = safeStr(customerDetails.address        || '');
-  const clientAddr3  = safeStr(customerDetails.Address3       || '');
-  const clientPhone  = safeStr(customerDetails.Contact_Number || '');
+  const clientName  = safeStr(customerDetails.Customer_Name  || '');
+  const clientAddr  = safeStr(customerDetails.address        || '');
+  const clientAddr3 = safeStr(customerDetails.Address3       || '');
+  const clientPhone = safeStr(customerDetails.Contact_Number || '');
 
   const projName    = safeStr(D.Product_Name || '');
   const location    = safeStr(D.WorkPlace    || '');
@@ -156,7 +445,15 @@ const stampLogoPage1 = () => {
   const reference   = safeStr(D.Reference   || D.ReferenceNo || '');
   const salesPerson = safeStr(D.Sales_Person || '');
 
-  const rawTerms   = cleanText(safeStr(D.Terms_And_Conditions || ''));
+  // ── Rich-text fields ──────────────────────────────────────────────────────
+  const rawDescription = normalizeRichText(safeStr(D.Description || ''));
+
+  // Normalize T&C and strip any outer wrapping [b]...[/b] that bolds everything
+  let rawTerms = normalizeRichText(safeStr(D.Terms_And_Conditions || ''));
+  rawTerms = rawTerms
+    .replace(/^\[b\]\s*/,   '')   // strip leading [b] wrapping entire block
+    .replace(/\s*\[\/b\]$/, ''); // strip trailing [/b] wrapping entire block
+
   const termsLines = rawTerms.split(/\n/).map(l => l.trim()).filter(Boolean);
 
   const taxable     = parseFloat(D.TaxableAmount)  || 0;
@@ -164,7 +461,7 @@ const stampLogoPage1 = () => {
   const netTotal    = parseFloat(D.NetTotal)        || 0;
   const discountAmt = parseFloat(D.Discount_Amount) || 0;
   const preparedBy  = safeStr(D.Created_By_Name     || '');
-  const ContactNo = safeStr(CONTACT.ContactNo  || '');
+  const ContactNo   = safeStr(CONTACT.ContactNo     || '');
 
   const gstPercent = parseFloat(D.TotalGSTPercent || D.GST_Percent || 0);
   const showGstCol = gstPercent > 0;
@@ -175,56 +472,47 @@ const stampLogoPage1 = () => {
   }
   if (!Array.isArray(rawDetails)) rawDetails = [];
 
-const grouped = new Map();
-rawDetails.forEach(item => {
-  const catId = item.CategoryId ?? '__none__';
-  if (!grouped.has(catId)) grouped.set(catId, []);
-  grouped.get(catId).push(item);
-});
-
-const tableRows = [];
-const costSummaryRows = [];
-let catCounter = 0;
-
-grouped.forEach((items, catId) => {
-  catCounter++;
-  const catName = items[0].CategoryName || `Category ${catCounter}`;
-
-  // Group header row
-  tableRows.push({ type: 'group', sr: String(catCounter), label: catName });
-
-  // Item rows under this category
-  items.forEach((item, itemIndex) => {
-    const unitPrice  = parseFloat(item.UnitPrice)  || 0;
-    const qty        = parseFloat(item.Quantity)    || 0;
-    const itemGstPct = parseFloat(item.GSTPercent || D.TotalGSTPercent || D.GST_Percent || 0);
-    const subtotal   = unitPrice * qty;
-    const itemGst    = showGstCol ? (subtotal * itemGstPct / 100) : 0;
-
-    tableRows.push({
-      type:     'item',
-      sr:       `${catCounter}.${itemIndex + 1}`,
-      desc:     cleanItemName(item.ItemName || ''),
-      qty:      safeStr(item.Quantity),
-      units:    safeStr(item.Unit || ''),
-      unitRate: unitPrice,
-      gstPct:   itemGstPct,
-      gstAmt:   itemGst,
-      total:    subtotal,
-    });
+  const grouped = new Map();
+  rawDetails.forEach(item => {
+    const catId = item.CategoryId ?? '__none__';
+    if (!grouped.has(catId)) grouped.set(catId, []);
+    grouped.get(catId).push(item);
   });
 
-  // Cost summary row per category
-  const catTotal = items.reduce(
-    (s, it) => s + (parseFloat(it.UnitPrice) || 0) * (parseFloat(it.Quantity) || 0), 0
-  );
-  costSummaryRows.push({ label: catName, amount: catTotal });
-});
+  const tableRows       = [];
+  const costSummaryRows = [];
+  let catCounter        = 0;
 
-  // ── Page layout constants ─────────────────────────────────────────────────
-  const P1_LEFT  = 18;
-  const P1_RIGHT = pageWidth - 18;
-  const P1_W     = P1_RIGHT - P1_LEFT;
+  grouped.forEach((items, catId) => {
+    catCounter++;
+    const catName = items[0].CategoryName || `Category ${catCounter}`;
+    tableRows.push({ type: 'group', sr: String(catCounter), label: catName });
+
+    items.forEach((item, itemIndex) => {
+      const unitPrice  = parseFloat(item.UnitPrice)  || 0;
+      const qty        = parseFloat(item.Quantity)    || 0;
+      const itemGstPct = parseFloat(item.GSTPercent || D.TotalGSTPercent || D.GST_Percent || 0);
+      const subtotal   = unitPrice * qty;
+      const itemGst    = showGstCol ? (subtotal * itemGstPct / 100) : 0;
+
+      tableRows.push({
+        type:     'item',
+        sr:       `${catCounter}.${itemIndex + 1}`,
+        desc:     cleanItemName(item.ItemName || ''),
+        qty:      safeStr(item.Quantity),
+        units:    safeStr(item.Unit || ''),
+        unitRate: unitPrice,
+        gstPct:   itemGstPct,
+        gstAmt:   itemGst,
+        total:    subtotal,
+      });
+    });
+
+    const catTotal = items.reduce(
+      (s, it) => s + (parseFloat(it.UnitPrice) || 0) * (parseFloat(it.Quantity) || 0), 0
+    );
+    costSummaryRows.push({ label: catName, amount: catTotal });
+  });
 
   // ── Footer helper ─────────────────────────────────────────────────────────
   function drawPage1Footer(pageLabel) {
@@ -238,119 +526,99 @@ grouped.forEach((items, catId) => {
   // ══════════════════════════════════════════════════════════════════════════
   // PAGE 1 — Header
   // ══════════════════════════════════════════════════════════════════════════
- stampLogoPage1();
+  stampLogoPage1();
 
-// ── Company details block (right side, two-zone design) ──────────────────
-const HD_LEFT  = P1_LEFT + 56;   // right of logo
-const HD_TOP   = 2;
-const HD_RIGHT = P1_RIGHT;
-const HD_W     = HD_RIGHT - HD_LEFT;
+  const HD_LEFT  = P1_LEFT + 56;
+  const HD_TOP   = 2;
+  const HD_RIGHT = P1_RIGHT;
+  const HD_W     = HD_RIGHT - HD_LEFT;
 
-// ── TOP ZONE: white background, dark text ────────────────────────────────
-doc.setFillColor(255, 255, 255);
-doc.rect(HD_LEFT, HD_TOP, HD_W, 13, 'F');
+  doc.setFillColor(255, 255, 255);
+  doc.rect(HD_LEFT, HD_TOP, HD_W, 13, 'F');
 
-// Company name — dark navy bold
-doc.setFont(undefined, 'bold');
-doc.setFontSize(8.5);
-doc.setTextColor(28, 42, 95);
-doc.text('Inovace Engineering Consultancy', HD_LEFT + 2, HD_TOP + 4.5);
+  doc.setFont(undefined, 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(28, 42, 95);
+  doc.text('Inovace Engineering Consultancy', HD_LEFT + 2, HD_TOP + 4.5);
 
-// Address line
-doc.setFont(undefined, 'normal');
-doc.setFontSize(7);
-doc.setTextColor(30, 30, 30);
-doc.text(
-  'First Floor, Femina Complex, Chembra Road, Payyanangadi, Tirur, Malappuram, Kerala, Pin: 676101',
-  HD_LEFT + 2, HD_TOP + 8.5,
-  { maxWidth: HD_W - 4 }
-);
+  doc.setFont(undefined, 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(30, 30, 30);
+  doc.text(
+    'First Floor, Femina Complex, Chembra Road, Payyanangadi, Tirur, Malappuram, Kerala, Pin: 676101',
+    HD_LEFT + 2, HD_TOP + 8.5, { maxWidth: HD_W - 4 }
+  );
+  doc.text('Branches: Sangamam Bazar, Calicut', HD_LEFT + 2, HD_TOP + 12.5);
 
-// Branches line
-doc.text('Branches: Sangamam Bazar, Calicut', HD_LEFT + 2, HD_TOP + 12.5);
+  const NAV_TOP = HD_TOP + 13.5;
+  const ROW_H   = 5.5;
+  const ICON_W  = 7;
 
-// ── BOTTOM ZONE: two rows with text symbols ───────────────────────────────
-const NAV_TOP = HD_TOP + 13.5;
-const ROW_H   = 5.5;
-const ICON_W  = 7;
+  // Phone row
+  doc.setFillColor(200, 30, 30);
+  doc.rect(HD_LEFT, NAV_TOP, ICON_W, ROW_H, 'F');
+  doc.setFont(undefined, 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(255, 255, 255);
+  doc.text('P', HD_LEFT + ICON_W / 2, NAV_TOP + 3.8, { align: 'center' });
 
-// ═══ Row 1 — Phone ═══════════════════════════════════════════════════════
-// Red icon background
-doc.setFillColor(200, 30, 30);
-doc.rect(HD_LEFT, NAV_TOP, ICON_W, ROW_H, 'F');
+  doc.setFillColor(28, 42, 95);
+  doc.rect(HD_LEFT + ICON_W, NAV_TOP, HD_W - ICON_W, ROW_H, 'F');
+  doc.setFont(undefined, 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(255, 255, 255);
+  doc.text(
+    '9746089321,  9567367828,  9567376828     OFFICE: 9072440007',
+    HD_LEFT + ICON_W + 2, NAV_TOP + 3.6
+  );
 
-// Phone symbol — simple bold P in white
-doc.setFont(undefined, 'bold');
-doc.setFontSize(8);
-doc.setTextColor(255, 255, 255);
-doc.text('P', HD_LEFT + ICON_W / 2, NAV_TOP + 3.8, { align: 'center' });
+  // Email row
+  doc.setFillColor(200, 30, 30);
+  doc.rect(HD_LEFT, NAV_TOP + ROW_H, ICON_W, ROW_H, 'F');
+  doc.setFont(undefined, 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(255, 255, 255);
+  doc.text('@', HD_LEFT + ICON_W / 2, NAV_TOP + ROW_H + 3.8, { align: 'center' });
 
-// Navy text area
-doc.setFillColor(28, 42, 95);
-doc.rect(HD_LEFT + ICON_W, NAV_TOP, HD_W - ICON_W, ROW_H, 'F');
-doc.setFont(undefined, 'normal');
-doc.setFontSize(7);
-doc.setTextColor(255, 255, 255);
-doc.text(
-  '9746089321,  9567367828,  9567376828     OFFICE: 9072440007',
-  HD_LEFT + ICON_W + 2, NAV_TOP + 3.6
-);
+  doc.setFillColor(28, 42, 95);
+  doc.rect(HD_LEFT + ICON_W, NAV_TOP + ROW_H, HD_W - ICON_W, ROW_H, 'F');
+  doc.setFont(undefined, 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(255, 255, 255);
+  doc.text(
+    'inovaceeng@gmail.com          sales.inovaceeng@gmail.com',
+    HD_LEFT + ICON_W + 2, NAV_TOP + ROW_H + 3.6
+  );
 
-// ═══ Row 2 — Email ═══════════════════════════════════════════════════════
-// Red icon background
-doc.setFillColor(200, 30, 30);
-doc.rect(HD_LEFT, NAV_TOP + ROW_H, ICON_W, ROW_H, 'F');
+  doc.setTextColor(0, 0, 0);
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.3);
 
-// Email symbol — simple @ in white
-doc.setFont(undefined, 'bold');
-doc.setFontSize(8);
-doc.setTextColor(255, 255, 255);
-doc.text('@', HD_LEFT + ICON_W / 2, NAV_TOP + ROW_H + 3.8, { align: 'center' });
+  const NAV_H = ROW_H * 2;
 
-// Navy text area
-doc.setFillColor(28, 42, 95);
-doc.rect(HD_LEFT + ICON_W, NAV_TOP + ROW_H, HD_W - ICON_W, ROW_H, 'F');
-doc.setFont(undefined, 'normal');
-doc.setFontSize(7);
-doc.setTextColor(255, 255, 255);
-doc.text(
-  'inovaceeng@gmail.com          sales.inovaceeng@gmail.com',
-  HD_LEFT + ICON_W + 2, NAV_TOP + ROW_H + 3.6
-);
+  doc.setDrawColor(28, 42, 95);
+  doc.setLineWidth(0.8);
+  doc.line(P1_LEFT, HD_TOP + 13.5 + NAV_H + 1, P1_RIGHT, HD_TOP + 13.5 + NAV_H + 1);
+  doc.setDrawColor(0, 0, 0);
 
-doc.setTextColor(0, 0, 0);
-doc.setDrawColor(0, 0, 0);
-doc.setLineWidth(0.3);
-
-// ── total NAV_H for divider/title calc ───────────────────────────────────
-const NAV_H = ROW_H * 2;
-
-// ── Divider line below entire header ─────────────────────────────────────
-doc.setDrawColor(28, 42, 95);
-doc.setLineWidth(0.8);
-doc.line(P1_LEFT, HD_TOP + 13.5 + NAV_H + 1, P1_RIGHT, HD_TOP + 13.5 + NAV_H + 1);
-doc.setDrawColor(0, 0, 0);
-
-// ── QUOTATION title ───────────────────────────────────────────────────────
-const TITLE_Y = HD_TOP + 13.5 + NAV_H + 8;
-doc.setFont(undefined, 'bold');
-doc.setFontSize(12);
-doc.text('QUOTATION', pageWidth / 2, TITLE_Y, { align: 'center' });
-const qtW1 = doc.getTextWidth('QUOTATION');
-doc.setLineWidth(0.5);
-doc.setDrawColor(0, 0, 0);
-doc.line(pageWidth / 2 - qtW1 / 2, TITLE_Y + 1.5,
-         pageWidth / 2 + qtW1 / 2, TITLE_Y + 1.5);
-doc.setLineWidth(0.4);
-doc.setDrawColor(222, 220, 215);
-doc.line(P1_LEFT, TITLE_Y + 5, P1_RIGHT, TITLE_Y + 5);
-doc.setDrawColor(0, 0, 0);
+  const TITLE_Y = HD_TOP + 13.5 + NAV_H + 8;
+  doc.setFont(undefined, 'bold');
+  doc.setFontSize(12);
+  doc.text('QUOTATION', pageWidth / 2, TITLE_Y, { align: 'center' });
+  const qtW1 = doc.getTextWidth('QUOTATION');
+  doc.setLineWidth(0.5);
+  doc.setDrawColor(0, 0, 0);
+  doc.line(pageWidth / 2 - qtW1 / 2, TITLE_Y + 1.5, pageWidth / 2 + qtW1 / 2, TITLE_Y + 1.5);
+  doc.setLineWidth(0.4);
+  doc.setDrawColor(222, 220, 215);
+  doc.line(P1_LEFT, TITLE_Y + 5, P1_RIGHT, TITLE_Y + 5);
+  doc.setDrawColor(0, 0, 0);
 
   // TO block
   doc.setFont(undefined, 'bold');
   doc.setFontSize(8.5);
   doc.text('TO :', P1_LEFT, 46);
-let toY = 52;
+  let toY = 52;
   const TO_LINE_H = 5;
   const TO_ADDR_W = 90;
 
@@ -380,7 +648,7 @@ let toY = 52;
     toY += TO_LINE_H;
   }
 
-  // Right side info block
+  // Right info block
   const IB_RIGHT = P1_RIGHT;
   doc.setFont(undefined, 'bold');
   doc.setFontSize(9);
@@ -415,12 +683,10 @@ let toY = 52;
     doc.setFontSize(8.5);
     doc.text(row.label, P1_LEFT, y);
     const labelW = doc.getTextWidth(row.label);
-    doc.setFont(undefined, 'normal');
     const colon  = ' : ';
+    doc.setFont(undefined, 'normal');
     doc.text(colon, P1_LEFT + labelW, y);
     const colonW = doc.getTextWidth(colon);
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(8.5);
     doc.text(
       doc.splitTextToSize(row.value, 100)[0] || '',
       P1_LEFT + labelW + colonW, y
@@ -428,51 +694,44 @@ let toY = 52;
   });
 
   // ── Description block ─────────────────────────────────────────────────────
-  const rawDescription = cleanText(safeStr(D.Description || ''));
-  const descBlocks = rawDescription
-    .split(/\n/)
-    .map(l => l.trim())
-    .filter(Boolean)
-    .map(line => {
-      const isPoint = /^(\d+[\.\)]\s+|[-•*]\s+)/.test(line);
-      const clean   = line.replace(/^(\d+[\.\)]\s+|[-•*]\s+)/, '').trim();
-      return { isPoint, text: clean };
-    });
-
-  const paragraphs = descBlocks.filter(b => !b.isPoint);
-  const points     = descBlocks.filter(b =>  b.isPoint);
-
   const introY   = Math.max(PI_Y + piRows.length * PI_LINE_H + 5, infoRightY + 5);
-  const INTRO_LH = 4.2;
+  const INTRO_LH = 4.5;
   let   curY     = introY;
 
-  if (paragraphs.length) {
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(0, 0, 0);
-    paragraphs.forEach(block => {
-      doc.splitTextToSize(block.text, P1_W).forEach(l => {
-        doc.text(l, P1_LEFT, curY); curY += INTRO_LH;
-      });
-    });
-    curY += 2;
-  }
+  if (rawDescription.trim()) {
+    const descLogicalLines = rawDescription.split(/\n/).map(l => l.trim()).filter(Boolean);
+    const paragraphs = descLogicalLines.filter(l => !/^(\d+[\.\)]\s+|[-•*]\s+)/.test(stripRichTags(l)));
+    const points     = descLogicalLines.filter(l =>  /^(\d+[\.\)]\s+|[-•*]\s+)/.test(stripRichTags(l)));
 
-  if (points.length) {
-    doc.setFontSize(8);
-    points.forEach((block, i) => {
-      const prefix  = `${i + 1}. `;
-      const prefixW = doc.getTextWidth(prefix);
-      const lines   = doc.splitTextToSize(block.text, P1_W - prefixW);
-      doc.setFont(undefined, 'bold');
-      doc.text(prefix, P1_LEFT, curY);
-      lines.forEach((l, li) => {
-        doc.setFont(undefined, 'bold');
-        doc.text(l, P1_LEFT + prefixW, curY + li * INTRO_LH);
+    if (paragraphs.length) {
+      paragraphs.forEach(line => {
+        curY = renderRichBlock(doc, line, P1_LEFT, curY, P1_W, INTRO_LH, 8, [0, 0, 0]);
       });
-      curY += lines.length * INTRO_LH + 1;
-    });
-    curY += 2;
+      curY += 2;
+    }
+
+    if (points.length) {
+      points.forEach((line, i) => {
+        const plainLine   = stripRichTags(line);
+        const prefixMatch = plainLine.match(/^(\d+[\.\)][a-z]?\.?\s+|[-•*]\s+)/i);
+        const prefix      = `${i + 1}. `;
+        const richBody    = prefixMatch
+          ? line.replace(new RegExp(`^${prefixMatch[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`), '').trim()
+          : line;
+
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(0, 0, 0);
+        doc.text(prefix, P1_LEFT, curY);
+        const prefixW = doc.getTextWidth(prefix);
+
+        const beforeY = curY;
+        curY = renderRichBlock(doc, richBody, P1_LEFT + prefixW, curY, P1_W - prefixW, INTRO_LH, 8, [0, 0, 0]);
+        if (curY === beforeY) curY += INTRO_LH;
+        curY += 1;
+      });
+      curY += 2;
+    }
   }
 
   const scopeStartY = curY;
@@ -559,7 +818,7 @@ let toY = 52;
       p1PageCount++;
       doc.addPage();
       doc.setTextColor(0, 0, 0);
-      stampLogo();         // ← small logo on continuation pages
+      stampLogo();
       drawTableHeader(18);
       tblY   = 18 + TBL_HEADER_H;
       rowIdx = 0;
@@ -577,8 +836,8 @@ let toY = 52;
       doc.text(row.label, X_DESC + 2,           tblY + 5);
       tblY += 8;
     } else {
-      const descLines  = doc.splitTextToSize(row.desc, DESC_MAX_W);
-      const rowH       = Math.max(ROW_H_ITEM, descLines.length * DESC_LINE_H + 6);
+      const descLines = doc.splitTextToSize(row.desc, DESC_MAX_W);
+      const rowH      = Math.max(ROW_H_ITEM, descLines.length * DESC_LINE_H + 6);
       checkP1Break(rowH);
       drawTableRow(tblY, rowH, false);
 
@@ -630,7 +889,7 @@ let toY = 52;
   const CS_BOTTOM_LIMIT = pageHeight - 60;
 
   function drawPage2Chrome() {
-    stampLogo();   // ← small logo top-left on every summary page
+    stampLogo();
     doc.setFont(undefined, 'normal');
     doc.setFontSize(7);
     doc.setTextColor(100, 100, 100);
@@ -672,10 +931,10 @@ let toY = 52;
     const DIVX       = CS_RIGHT - CS_AMT_W;
 
     const rows = [
-      { label: 'SUB TOTAL :',            value: fmt(taxable)  },
-      ...(discountAmt > 0 ? [{ label: 'DISCOUNT :',                   value: fmt(discountAmt) }] : []),
-      ...(gstPercent  > 0 ? [{ label: `${gstPercent}% GST AMOUNT :`,  value: fmt(gstAmt)      }] : []),
-      { label: 'NET QUOTATION AMOUNT :', value: fmt(netTotal) },
+      { label: 'SUB TOTAL :',                             value: fmt(taxable)  },
+      ...(discountAmt > 0 ? [{ label: 'DISCOUNT :',       value: fmt(discountAmt) }] : []),
+      ...(gstPercent  > 0 ? [{ label: `${gstPercent}% GST AMOUNT :`, value: fmt(gstAmt) }] : []),
+      { label: 'NET QUOTATION AMOUNT :',                  value: fmt(netTotal) },
     ];
 
     rows.forEach((r, i) => {
@@ -722,6 +981,9 @@ let toY = 52;
     return startY + iwH;
   }
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // TERMS & CONDITIONS — Rich Text
+  // ══════════════════════════════════════════════════════════════════════════
   function drawTermsAndConditions(startY) {
     if (!termsLines.length) return startY;
 
@@ -737,27 +999,43 @@ let toY = 52;
     doc.line(CS_LEFT, startY + 1, CS_LEFT + headingW, startY + 1);
 
     let lineY = startY + 7;
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(8.5);
 
     termsLines.forEach((line) => {
-      const prefixMatch = line.match(/^(\d+[\.\)][a-z]?\.?\s+)/i);
+      const plainLine   = stripRichTags(line);
+      const prefixMatch = plainLine.match(/^(\d+[\.\)][a-z]?\.?\s+)/i);
+
       if (prefixMatch) {
-        const prefix  = prefixMatch[0];
-        const rest    = line.slice(prefix.length);
-        const prefixW = doc.getTextWidth(prefix);
-        const wrapped = doc.splitTextToSize(rest, TC_WRAP_W - prefixW);
+        const prefix   = prefixMatch[0];
+        // Remove prefix from rich line
+        const richBody = line.startsWith(prefix)
+          ? line.slice(prefix.length)
+          : line.replace(new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`), '');
+
+        // Render prefix in normal weight (not bold — outer [b] has been stripped)
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(0, 0, 0);
         doc.text(prefix, CS_LEFT, lineY);
-        wrapped.forEach((wl, wi) => {
-          doc.text(wl, CS_LEFT + prefixW, lineY + wi * TC_LINE_H);
-        });
-        lineY += wrapped.length * TC_LINE_H + 1;
+        const prefixW = doc.getTextWidth(prefix);
+
+        // Render rich body (bold/color tags inside will apply selectively)
+        lineY = renderRichBlock(
+          doc, richBody.trim(),
+          CS_LEFT + prefixW, lineY,
+          TC_WRAP_W - prefixW,
+          TC_LINE_H, 8.5, [0, 0, 0]
+        );
+        lineY += 1;
+
       } else {
-        const wrapped = doc.splitTextToSize(line, TC_WRAP_W - 6);
-        wrapped.forEach((wl, wi) => {
-          doc.text(wl, CS_LEFT + 6, lineY + wi * TC_LINE_H);
-        });
-        lineY += wrapped.length * TC_LINE_H + 1;
+        // Sub-point or continuation line — indent slightly
+        lineY = renderRichBlock(
+          doc, line,
+          CS_LEFT + 6, lineY,
+          TC_WRAP_W - 6,
+          TC_LINE_H, 8.5, [0, 0, 0]
+        );
+        lineY += 1;
       }
     });
 
@@ -767,26 +1045,24 @@ let toY = 52;
   function drawSignature(startY) {
     doc.setFont(undefined, 'normal');
     doc.setFontSize(8);
-    doc.text('Prepared By',              CS_LEFT + 2,  startY);
+    doc.text('Prepared By',          CS_LEFT + 2, startY);
     doc.setFontSize(9);
-    doc.text(preparedBy || '',       CS_LEFT + 2,  startY + 6);
- doc.text('Contact No:',              CS_LEFT + 2,  startY+12);
-    doc.setFontSize(9);
-    doc.text(ContactNo || '',       CS_LEFT + 2,  startY + 17);
-    
+    doc.text(preparedBy || '',       CS_LEFT + 2, startY + 6);
     doc.setFontSize(8);
-    doc.text('Thanking You',              CS_RIGHT - 3, startY,     { align: 'right' });
-    doc.setFontSize(8.5);
-    doc.text('For : ' + CONTACT.company, CS_RIGHT - 3, startY + 6, { align: 'right' });
+    doc.text('Contact No:',          CS_LEFT + 2, startY + 12);
+    doc.setFontSize(9);
+    doc.text(ContactNo || '',        CS_LEFT + 2, startY + 17);
 
-    // Divider
+    doc.setFontSize(8);
+    doc.text('Thanking You',              CS_RIGHT - 3, startY,      { align: 'right' });
+    doc.setFontSize(8.5);
+    doc.text('For : ' + CONTACT.company, CS_RIGHT - 3, startY + 6,  { align: 'right' });
+
     const divY = startY + 18;
     doc.setDrawColor(222, 220, 215);
     doc.setLineWidth(0.5);
     doc.line(CS_LEFT, divY, CS_RIGHT, divY);
     doc.setDrawColor(0, 0, 0);
-
-
   }
 
   // ── Render page 2 ─────────────────────────────────────────────────────────
@@ -796,7 +1072,6 @@ let toY = 52;
 
   costSummaryRows.forEach((row, i) => {
     if (csY + CS_ROW_H > CS_BOTTOM_LIMIT) {
-      drawPage2Chrome();
       doc.addPage();
       drawPage2Chrome();
       csY = drawCSHeader(CS_START_Y);
@@ -813,4 +1088,4 @@ let toY = 52;
   return Buffer.from(doc.output('arraybuffer'));
 };
 
-module.exports = { generateQuotationPdf };
+module.exports = { generateQuotationPdf, normalizeRichText, stripAllTags, normalizeQuotationPayload };
