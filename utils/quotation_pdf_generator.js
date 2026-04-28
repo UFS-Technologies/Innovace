@@ -658,7 +658,7 @@ function getFinalRichState(raw, initBold = false, initItalic = false, initColor 
   doc.text('PROJECT NAME : ' + projName,  IB_RIGHT, 62, { align: 'right' });
   doc.text('LOCATION : '     + location,  IB_RIGHT, 68, { align: 'right' });
 
-  let infoRightY = 81;
+  let infoRightY = 74;
   if (reference) {
     doc.text('REFERENCE : '    + reference,   IB_RIGHT, infoRightY, { align: 'right' });
     infoRightY += 6;
@@ -668,7 +668,7 @@ function getFinalRichState(raw, initBold = false, initItalic = false, initColor 
     infoRightY += 6;
   }
 
-  const PI_Y      = 75;
+  const PI_Y = toY + 4;
   const PI_LINE_H = 6.5;
 
   const piRows = [
@@ -1049,16 +1049,16 @@ function getFinalRichState(raw, initBold = false, initItalic = false, initColor 
     doc.setFontSize(9);
     doc.text(preparedBy || '',       CS_LEFT + 2, startY + 6);
     doc.setFontSize(8);
-    doc.text('Contact No:',          CS_LEFT + 2, startY + 12);
-    doc.setFontSize(9);
-    doc.text(ContactNo || '',        CS_LEFT + 2, startY + 17);
+    // doc.text('Contact No:',          CS_LEFT + 2, startY + 12);
+    // doc.setFontSize(9);
+    // doc.text(ContactNo || '',        CS_LEFT + 2, startY + 17);
 
     doc.setFontSize(8);
     doc.text('Thanking You',              CS_RIGHT - 3, startY,      { align: 'right' });
     doc.setFontSize(8.5);
     doc.text('For : ' + CONTACT.company, CS_RIGHT - 3, startY + 6,  { align: 'right' });
 
-    const divY = startY + 18;
+    const divY = startY + 16;
     doc.setDrawColor(222, 220, 215);
     doc.setLineWidth(0.5);
     doc.line(CS_LEFT, divY, CS_RIGHT, divY);
