@@ -3,17 +3,35 @@ var router = express.Router();
 var quotation_details = require("../models/quotation_details");
 
 router.post("/Save_quotation_details/", function (req, res, next) {
+
   try {
-    quotation_details.Save_quotation_details(req.body, function (err, rows) {
-      if (err) {
-        res.json(err);
-      } else {
-        res.json(rows);
+
+    const items = req.body.items;
+    const Quotation_Master_Id = req.body.Quotation_Master_Id;
+
+    quotation_details.Save_quotation_details(
+      items,
+      Quotation_Master_Id,
+      function (err, rows) {
+
+        if (err) {
+          res.json(err);
+        } else {
+          res.json(rows);
+        }
+
       }
-    });
+    );
+
   } catch (e) {
-  } finally {
+
+    res.json({
+      success: false,
+      error: e.message
+    });
+
   }
+
 });
 router.get("/Search_quotation_details/", function (req, res, next) {
   try {

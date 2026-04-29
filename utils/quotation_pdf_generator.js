@@ -488,17 +488,18 @@ function getFinalRichState(raw, initBold = false, initItalic = false, initColor 
     const catName = items[0].CategoryName || `Category ${catCounter}`;
     tableRows.push({ type: 'group', sr: String(catCounter), label: catName });
 
-    items.forEach((item, itemIndex) => {
-      const unitPrice  = parseFloat(item.UnitPrice)  || 0;
-      const qty        = parseFloat(item.Quantity)    || 0;
-      const itemGstPct = parseFloat(item.GSTPercent || D.TotalGSTPercent || D.GST_Percent || 0);
-      const subtotal   = unitPrice * qty;
-      const itemGst    = showGstCol ? (subtotal * itemGstPct / 100) : 0;
+   items.forEach((item, itemIndex) => {
+  const unitPrice  = parseFloat(item.UnitPrice)  || 0;
+  const qty        = parseFloat(item.Quantity)    || 0;
+  const itemGstPct = parseFloat(item.GSTPercent || D.TotalGSTPercent || D.GST_Percent || 0);
+  const subtotal   = unitPrice * qty;
+  const itemGst    = showGstCol ? (subtotal * itemGstPct / 100) : 0;
 
-      tableRows.push({
-        type:     'item',
-        sr:       `${catCounter}.${itemIndex + 1}`,
-        desc:     cleanItemName(item.ItemName || ''),
+  tableRows.push({
+    type:     'item',
+    sr:       safeStr(item.Item_Index || `${catCounter}.${itemIndex + 1}`), // ← from DB, fallback to calculated
+    desc:     cleanItemName(item.ItemName || ''),
+    make:     safeStr(item.make || ''),
         qty:      safeStr(item.Quantity),
         units:    safeStr(item.Unit || ''),
         unitRate: unitPrice,
@@ -847,8 +848,7 @@ function getFinalRichState(raw, initBold = false, initItalic = false, initColor 
       doc.setFont(undefined, 'normal');
       doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
-
-      doc.text(row.sr, X_SR + COL_SR / 2, midY, { align: 'center' });
+doc.text(row.sr, X_SR + COL_SR / 2, midY, { align: 'center' });
       descLines.forEach((line, li) => {
         doc.text(line, X_DESC + 2, firstLineY + li * DESC_LINE_H);
       });
@@ -859,6 +859,32 @@ function getFinalRichState(raw, initBold = false, initItalic = false, initColor 
 
       rowIdx++;
       tblY += rowH;
+
+      // ── Make row ──────────────────────────────────────────────────────────
+      const makeVal = safeStr(row.make || '');
+      if (makeVal) {
+        const MAKE_ROW_H = 6;
+        checkP1Break(MAKE_ROW_H);
+
+        // Background — slightly lighter grey to visually separate from item
+        doc.setFillColor(240, 240, 240);
+        doc.rect(TBL_LEFT, tblY, TBL_W, MAKE_ROW_H, 'F');
+        doc.setDrawColor(190, 190, 190);
+        doc.setLineWidth(0.3);
+        doc.rect(TBL_LEFT, tblY, TBL_W, MAKE_ROW_H);
+        colDividers.forEach(x => doc.line(x, tblY, x, tblY + MAKE_ROW_H));
+        doc.setDrawColor(0, 0, 0);
+
+        const makeMidY = tblY + MAKE_ROW_H / 2 + 1.5;
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(60, 60, 60);
+        doc.text('Make : ' + makeVal, X_DESC + 2, makeMidY);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont(undefined, 'normal');
+
+        tblY += MAKE_ROW_H;
+      }
     }
   });
 
