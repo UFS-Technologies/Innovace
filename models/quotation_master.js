@@ -73,14 +73,31 @@ Save_quotation_master: function (quotation_master_, callback) {
 
 
  ,
- Save_template_master: function (template_, callback) {
+Save_template_master: function (template_, callback) {
 
   return db.query(
-    "CALL Save_template_master(?,?,?)",
+    `CALL Save_template_master(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
-      template_.template_id || 0,   // 0 = insert
+      template_.template_id || 0,
       template_.template_name,
-      template_.delete_status || 0
+
+      template_.Product_Name || "",
+      template_.Terms_And_Conditions || "",
+      template_.Description || "",
+
+      JSON.stringify(template_.items || []),
+
+      template_.TaxableAmount || 0,
+      template_.TotalGSTAmount || 0,
+      template_.TotalGSTPercent || 0,
+      template_.TotalAdCESS || 0,
+
+      template_.Category || "",
+      template_.IS_GST || 0,
+      template_.GST_Percent || 0,
+
+      template_.Discount_Percentage || 0,
+      template_.Discount_Amount || 0
     ],
     callback
   );
