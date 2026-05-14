@@ -377,7 +377,7 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
   // Page 1 logo — larger
   const stampLogoPage1 = () => {
     if (logoB64) {
-      try { doc.addImage(logoB64, logoType, P1_LEFT, 23, 65, 24); }
+      try { doc.addImage(logoB64, logoType, P1_LEFT, 8, 65, 24); }
       catch (e) { console.error('[Logo] Page1 addImage FAILED:', e.message); }
     }
   };
@@ -503,7 +503,7 @@ const generateQuotationPdf = async (quotationData, customerDetails = {}) => {
   stampLogoPage1();
 
   const HD_LEFT  = P1_LEFT + 70;
-  const HD_TOP   = 22;
+  const HD_TOP   = 8;
   const HD_RIGHT = P1_RIGHT;
   const HD_W     = HD_RIGHT - HD_LEFT;
 
